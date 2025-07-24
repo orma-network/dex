@@ -76,7 +76,7 @@ contract DeploymentTest is Script {
         console.log("=== All Tests Completed Successfully ===");
     }
 
-    function _testBasicFunctionality() internal {
+    function _testBasicFunctionality() internal view {
         console.log("Test 1: Basic contract functionality...");
 
         // Test Factory
@@ -240,7 +240,6 @@ contract DeploymentTest is Script {
 
         Router routerContract = Router(router);
         ERC20 tokenA = ERC20(testTokenA);
-        ERC20 tokenB = ERC20(testTokenB);
 
         // Check if we have tokens to swap
         uint256 swapAmount = 10 * 10**18; // 10 tokens

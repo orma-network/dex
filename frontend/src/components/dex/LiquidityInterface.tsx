@@ -10,6 +10,9 @@ import { CONTRACT_ADDRESSES, ROUTER_ABI, ERC20_ABI, FACTORY_ABI } from '@/lib/wa
 import { useNotification } from '@/app/page';
 import { useTokenRegistry } from '../../contexts/TokenRegistryContext';
 import { usePools } from '../../contexts/PoolsContext';
+import { GroupBox } from '@/components/ui';
+import { TokenSelector } from './TokenSelector';
+import { LiquidityConfirmationDialog } from '@/components/ui/LiquidityConfirmationDialog';
 
 interface Token {
   address: string;
@@ -79,15 +82,31 @@ export function LiquidityInterface() {
   const [lpTokenAmount, setLpTokenAmount] = useState('');
   const [removePercentage, setRemovePercentage] = useState('25');
 
+  // Confirmation dialog state
+  const [showAddConfirmation, setShowAddConfirmation] = useState(false);
+  const [showRemoveConfirmation, setShowRemoveConfirmation] = useState(false);
+  const [pendingTransaction, setPendingTransaction] = useState<{
+    type: 'add' | 'remove';
+    tokenA: Token;
+    tokenB: Token;
+    amountA: string;
+    amountB: string;
+    lpTokenAmount?: string;
+  } | null>(null);
+
   // Transaction handling
-  const { writeContract, data: hash, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess, isError: receiptError } = useWaitForTransactionReceipt({
     hash,
   });
 
   useEffect(() => {
     setIsMounted(true);
+    // Test notification system
+    console.log('LiquidityInterface mounted, testing notification system');
   }, []);
+
+
 
   // Initialize tokens when availableTokens becomes available
   useEffect(() => {
@@ -110,10 +129,10 @@ export function LiquidityInterface() {
 
   // Function to validate Ethereum address
   const isValidAddress = (address: string): boolean => {
-    return address &&
+    return !!(address &&
            address.startsWith('0x') &&
            address.length === 42 &&
-           /^0x[a-fA-F0-9]{40}$/.test(address);
+           /^0x[a-fA-F0-9]{40}$/.test(address));
   };
 
   // Get token balances with refetch capability
@@ -224,12 +243,27 @@ export function LiquidityInterface() {
 
   // Handle transaction success
   useEffect(() => {
-    if (isSuccess) {
+    console.log('Transaction status changed:', {
+      isSuccess,
+      hash,
+      isPending,
+      isConfirming,
+      receiptError,
+      writeError
+    });
+
+    if (isSuccess && hash) {
+      console.log('🎉 Transaction successful! Hash:', hash);
+
       showNotification(
         'Liquidity Added Successfully',
-        'Your liquidity has been added to the pool! 🎉\n\n✅ LP tokens have been minted to your wallet\n✅ Your token balances have been updated\n✅ Check "My Positions" tab to see your LP tokens',
+        'Your liquidity has been added to the pool!\n\n• LP tokens minted to your wallet\n• Token balances updated\n• Check "My Positions" tab for details',
         'success'
       );
+
+      // Close confirmation dialog
+      setShowAddConfirmation(false);
+      setPendingTransaction(null);
 
       // Refetch all balances with loading indicator
       setIsRefreshingBalances(true);
@@ -245,6 +279,8 @@ export function LiquidityInterface() {
       ]).then(() => {
         // Refetch reserves to update pool ratio
         return checkPairAndReserves();
+      }).catch((error) => {
+        console.error('Error refreshing balances:', error);
       }).finally(() => {
         setTimeout(() => {
           setIsRefreshingBalances(false);
@@ -256,7 +292,45 @@ export function LiquidityInterface() {
       setAmountB('');
       setLpTokenAmount('');
     }
-  }, [isSuccess, showNotification, refetchBalanceA, refetchBalanceB, refetchRemoveBalanceA, refetchRemoveBalanceB, checkPairAndReserves]);
+  }, [isSuccess, hash, isPending, isConfirming, showNotification, refetchBalanceA, refetchBalanceB, refetchRemoveBalanceA, refetchRemoveBalanceB, checkPairAndReserves, refreshPools]);
+
+  // Monitor hash changes
+  useEffect(() => {
+    if (hash) {
+      console.log('📋 Transaction hash received:', hash);
+    }
+  }, [hash]);
+
+  // Handle transaction errors
+  useEffect(() => {
+    if (writeError) {
+      console.error('Write contract error:', writeError);
+      showNotification(
+        'Transaction Failed',
+        `Failed to submit transaction: ${writeError.message}\n\nPlease check your wallet connection and try again.`,
+        'error'
+      );
+      // Close confirmation dialog on error
+      setShowAddConfirmation(false);
+      setShowRemoveConfirmation(false);
+      setPendingTransaction(null);
+    }
+  }, [writeError, showNotification]);
+
+  useEffect(() => {
+    if (receiptError) {
+      console.error('Transaction receipt error:', receiptError);
+      showNotification(
+        'Transaction Failed',
+        'Transaction was submitted but failed to complete.\n\nPlease check the transaction on the blockchain explorer.',
+        'error'
+      );
+      // Close confirmation dialog on error
+      setShowAddConfirmation(false);
+      setShowRemoveConfirmation(false);
+      setPendingTransaction(null);
+    }
+  }, [receiptError, showNotification]);
 
   // Check if pair exists and get reserves
   useEffect(() => {
@@ -369,48 +443,141 @@ export function LiquidityInterface() {
     return parseFloat(formatUnits(balance, decimals)).toFixed(4);
   };
 
-  const handleAddLiquidity = async () => {
+  const handleAddLiquidityClick = () => {
     if (!isConnected || !address || !amountA || !amountB ||
         !isValidAddress(tokenA.address) || !isValidAddress(tokenB.address)) return;
 
+    // Set pending transaction data and show confirmation dialog
+    setPendingTransaction({
+      type: 'add',
+      tokenA,
+      tokenB,
+      amountA,
+      amountB,
+    });
+    setShowAddConfirmation(true);
+  };
+
+  const executeAddLiquidity = async () => {
+    if (!isConnected || !address || !pendingTransaction) return;
+
     try {
       setIsLoading(true);
-      
-      const amountADesired = parseUnits(amountA, tokenA.decimals);
-      const amountBDesired = parseUnits(amountB, tokenB.decimals);
-      const amountAMin = parseUnits((parseFloat(amountA) * 0.95).toString(), tokenA.decimals); // 5% slippage
-      const amountBMin = parseUnits((parseFloat(amountB) * 0.95).toString(), tokenB.decimals);
+
+      const { tokenA: txTokenA, tokenB: txTokenB, amountA: txAmountA, amountB: txAmountB } = pendingTransaction;
+
+      const amountADesired = parseUnits(txAmountA, txTokenA.decimals);
+      const amountBDesired = parseUnits(txAmountB, txTokenB.decimals);
+      const amountAMin = parseUnits((parseFloat(txAmountA) * 0.95).toString(), txTokenA.decimals); // 5% slippage
+      const amountBMin = parseUnits((parseFloat(txAmountB) * 0.95).toString(), txTokenB.decimals);
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200); // 20 minutes
 
-      // First approve both tokens
-      await writeContract({
-        address: tokenA.address as `0x${string}`,
+      console.log('🔍 Checking token balances and approvals...');
+
+      // Check if user has sufficient balances
+      const balanceA = await publicClient?.readContract({
+        address: txTokenA.address as `0x${string}`,
         abi: ERC20_ABI,
-        functionName: 'approve',
-        args: [CONTRACT_ADDRESSES.ROUTER as `0x${string}`, amountADesired],
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
       });
 
-      // Wait for first approval
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      await writeContract({
-        address: tokenB.address as `0x${string}`,
+      const balanceB = await publicClient?.readContract({
+        address: txTokenB.address as `0x${string}`,
         abi: ERC20_ABI,
-        functionName: 'approve',
-        args: [CONTRACT_ADDRESSES.ROUTER as `0x${string}`, amountBDesired],
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
       });
 
-      // Wait for second approval
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('💰 Token balances:', {
+        tokenA: `${formatUnits(balanceA || BigInt(0), txTokenA.decimals)} ${txTokenA.symbol}`,
+        tokenB: `${formatUnits(balanceB || BigInt(0), txTokenB.decimals)} ${txTokenB.symbol}`,
+        required: `${txAmountA} ${txTokenA.symbol}, ${txAmountB} ${txTokenB.symbol}`
+      });
 
-      // Add liquidity
-      await writeContract({
+      if (!balanceA || balanceA < amountADesired) {
+        throw new Error(`Insufficient ${txTokenA.symbol} balance. Required: ${txAmountA}, Available: ${formatUnits(balanceA || BigInt(0), txTokenA.decimals)}`);
+      }
+
+      if (!balanceB || balanceB < amountBDesired) {
+        throw new Error(`Insufficient ${txTokenB.symbol} balance. Required: ${txAmountB}, Available: ${formatUnits(balanceB || BigInt(0), txTokenB.decimals)}`);
+      }
+
+      // Check current allowances
+      const allowanceA = await publicClient?.readContract({
+        address: txTokenA.address as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'allowance',
+        args: [address as `0x${string}`, CONTRACT_ADDRESSES.ROUTER as `0x${string}`],
+      });
+
+      const allowanceB = await publicClient?.readContract({
+        address: txTokenB.address as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'allowance',
+        args: [address as `0x${string}`, CONTRACT_ADDRESSES.ROUTER as `0x${string}`],
+      });
+
+      console.log('🔐 Current allowances:', {
+        tokenA: `${formatUnits(allowanceA || BigInt(0), txTokenA.decimals)} ${txTokenA.symbol}`,
+        tokenB: `${formatUnits(allowanceB || BigInt(0), txTokenB.decimals)} ${txTokenB.symbol}`,
+        required: `${txAmountA} ${txTokenA.symbol}, ${txAmountB} ${txTokenB.symbol}`
+      });
+
+      // Only approve if current allowance is insufficient
+      if (!allowanceA || allowanceA < amountADesired) {
+        console.log(`📝 Approving ${txTokenA.symbol}...`);
+        showNotification(
+          'Approval Required',
+          `Please approve ${txTokenA.symbol} spending in your wallet.`,
+          'info'
+        );
+
+        writeContract({
+          address: txTokenA.address as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [CONTRACT_ADDRESSES.ROUTER as `0x${string}`, amountADesired],
+        });
+        return; // Exit here, let the transaction complete and user will need to retry
+      }
+
+      if (!allowanceB || allowanceB < amountBDesired) {
+        console.log(`📝 Approving ${txTokenB.symbol}...`);
+        showNotification(
+          'Approval Required',
+          `Please approve ${txTokenB.symbol} spending in your wallet.`,
+          'info'
+        );
+
+        writeContract({
+          address: txTokenB.address as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [CONTRACT_ADDRESSES.ROUTER as `0x${string}`, amountBDesired],
+        });
+        return; // Exit here, let the transaction complete and user will need to retry
+      }
+
+      // Both tokens are approved, proceed with addLiquidity
+      console.log('📝 Submitting addLiquidity transaction with args:', {
+        tokenA: txTokenA.address,
+        tokenB: txTokenB.address,
+        amountADesired: amountADesired.toString(),
+        amountBDesired: amountBDesired.toString(),
+        amountAMin: amountAMin.toString(),
+        amountBMin: amountBMin.toString(),
+        to: address,
+        deadline: deadline.toString()
+      });
+
+      writeContract({
         address: CONTRACT_ADDRESSES.ROUTER as `0x${string}`,
         abi: ROUTER_ABI,
         functionName: 'addLiquidity',
         args: [
-          tokenA.address as `0x${string}`,
-          tokenB.address as `0x${string}`,
+          txTokenA.address as `0x${string}`,
+          txTokenB.address as `0x${string}`,
           amountADesired,
           amountBDesired,
           amountAMin,
@@ -420,7 +587,7 @@ export function LiquidityInterface() {
         ],
       });
 
-      console.log('Liquidity added successfully!');
+      console.log('✅ Liquidity transaction submitted, waiting for confirmation...');
     } catch (error) {
       console.error('Add liquidity failed:', error);
       showNotification(
@@ -428,6 +595,9 @@ export function LiquidityInterface() {
         `Failed to add liquidity: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease check:\n• Your token balances\n• Token approvals\n• Network connection`,
         'error'
       );
+      // Close confirmation dialog on error
+      setShowAddConfirmation(false);
+      setPendingTransaction(null);
     } finally {
       setIsLoading(false);
     }
@@ -560,19 +730,50 @@ export function LiquidityInterface() {
     }
   };
 
+  // Enhanced validation functions
+  const getAmountValidationError = (amount: string, balance: bigint | undefined, decimals: number, tokenSymbol: string): string | null => {
+    if (!amount) return null;
+    if (parseFloat(amount) <= 0) return 'Amount must be greater than 0';
+    if (hasInsufficientBalance(amount, balance, decimals)) {
+      return `Insufficient ${tokenSymbol} balance`;
+    }
+    return null;
+  };
+
+  const getMinimumLiquidityError = (amountA: string, amountB: string): string | null => {
+    if (!amountA || !amountB) return null;
+    const minAmount = 0.000001; // Minimum liquidity threshold
+    if (parseFloat(amountA) < minAmount || parseFloat(amountB) < minAmount) {
+      return `Minimum liquidity amount is ${minAmount}`;
+    }
+    return null;
+  };
+
+  // Real-time validation
+  const amountAError = getAmountValidationError(amountA, balanceA, tokenA.decimals, tokenA.symbol);
+  const amountBError = getAmountValidationError(amountB, balanceB, tokenB.decimals, tokenB.symbol);
+  const minimumLiquidityError = getMinimumLiquidityError(amountA, amountB);
+  const lpAmountError = getAmountValidationError(lpTokenAmount, removeLpTokenBalance, 18, 'LP');
+
+  const hasValidationErrors = !!(amountAError || amountBError || minimumLiquidityError);
+  const hasRemoveValidationErrors = !!lpAmountError;
+
   const canAddLiquidity = isMounted && isConnected &&
     isValidAmount(amountA) && isValidAmount(amountB) &&
-    !hasInsufficientBalance(amountA, balanceA, tokenA.decimals) &&
-    !hasInsufficientBalance(amountB, balanceB, tokenB.decimals) &&
+    !hasValidationErrors &&
     !isPending && !isConfirming;
 
-  const canRemoveLiquidity = isMounted && isConnected && isValidAmount(lpTokenAmount) && !isPending && !isConfirming;
+  const canRemoveLiquidity = isMounted && isConnected &&
+    isValidAmount(lpTokenAmount) &&
+    !hasRemoveValidationErrors &&
+    !isPending && !isConfirming;
 
   return (
     <Window
+      id="liquidity"
       title="WinDex - Liquidity Management"
       width={520}
-      height={650}
+      height={680}
       x={150}
       y={80}
       className="font-mono"
@@ -605,16 +806,18 @@ export function LiquidityInterface() {
           </div>
         )}
 
+
+
         {isMounted && isConnected && CONTRACT_ADDRESSES.FACTORY && availableTokens.length === 0 && (
           <div className="swap-status-message">
             <div className="win98-status-panel warning">
               <span className="win98-status-text">
-                🪙 No tokens available for liquidity provision
+                No tokens available for liquidity provision
                 <br />
                 <br />
                 To add liquidity:
                 <br />
-                1. Create tokens using the 🪙 Tokenizer
+                1. Create tokens using the Tokenizer
                 <br />
                 2. Tokens will appear here for liquidity provision
                 <br />
@@ -627,7 +830,7 @@ export function LiquidityInterface() {
         {/* Tab Navigation */}
         {isMounted && isConnected && CONTRACT_ADDRESSES.FACTORY && hasTokens && (
           <>
-            <div className="liquidity-tabs">
+            <div className="win98-tab-control">
               <button
                 className={`win98-tab ${activeTab === 'add' ? 'active' : ''}`}
                 onClick={() => setActiveTab('add')}
@@ -651,331 +854,205 @@ export function LiquidityInterface() {
             {/* Add Liquidity Tab */}
             {activeTab === 'add' && (
               <div className="liquidity-content">
-                <div className="liquidity-section">
-                  <div className="section-header">
-                    <h3 className="section-title">Add Liquidity</h3>
+                {/* Step Indicator */}
+                <div className="win98-step-indicator">
+                  <div className="step-header">
+                    <span className="step-icon">•</span>
+                    <span className="step-title">Add Liquidity to Pool</span>
                     <button
                       className="refresh-button"
                       onClick={refreshBalances}
                       disabled={isRefreshingBalances}
                       title="Refresh balances and pool data"
                     >
-                      {isRefreshingBalances ? '⟳' : '↻'}
+                      {isRefreshingBalances ? '⟳ Refreshing...' : '↻ Refresh'}
                     </button>
                   </div>
-                  
-                  {/* Token A Input */}
-                  <div className="liquidity-input-group">
-                    <div className="input-header">
-                      <span className="token-label">Token A</span>
-                      <div className="balance-controls">
-                        <span className="balance-label">
-                          Balance: {isRefreshingBalances ? '⟳' : ''} {formatBalance(balanceA, tokenA.decimals)} {tokenA.symbol}
-                        </span>
-                        <button
-                          className="max-button"
-                          onClick={() => {
-                            if (balanceA) {
-                              handleAmountAChange(formatUnits(balanceA, tokenA.decimals));
-                            }
-                          }}
-                          disabled={!isMounted || !isConnected || !balanceA}
-                        >
-                          MAX
-                        </button>
-                      </div>
-                    </div>
-                    <div className="liquidity-input-row">
-                      <Input
-                        type="number"
-                        placeholder="0.0"
-                        value={amountA}
-                        onChange={(e) => handleAmountAChange(e.target.value)}
-                        className={`liquidity-amount-input ${
-                          amountA && hasInsufficientBalance(amountA, balanceA, tokenA.decimals)
-                            ? 'error'
-                            : ''
-                        }`}
-                        disabled={!isMounted || !isConnected}
-                      />
-                      {amountA && hasInsufficientBalance(amountA, balanceA, tokenA.decimals) && (
-                        <div className="input-error">Insufficient balance</div>
-                      )}
-                      <Select
-                        value={tokenA.address}
-                        onChange={(e) => {
-                          const token = availableTokens.find((t: Token) => t.address === e.target.value);
-                          if (token) setTokenA(token);
-                        }}
-                        options={availableTokens && availableTokens.length > 0 ? availableTokens.map(token => ({
-                          value: token.address,
-                          label: `${token.symbol} (${token.name})`,
-                        })) : [{ value: '', label: 'No tokens available' }]}
-                        className="liquidity-token-select"
-                        disabled={!isMounted || !isConnected}
-                      />
-                    </div>
+                  <div className="step-description">
+                    {pairExists ?
+                      'Add tokens to an existing liquidity pool. You\'ll receive LP tokens representing your share.' :
+                      'Create a new liquidity pool by being the first to add these tokens. You\'ll set the initial price ratio.'
+                    }
                   </div>
+                </div>
 
-                  {/* Plus Icon */}
-                  <div className="liquidity-plus">+</div>
-
-                  {/* Token B Input */}
-                  <div className="liquidity-input-group">
-                    <div className="input-header">
-                      <span className="token-label">
-                        Token B
-                        {pairExists && reserves && (
-                          <span className="calculated-indicator"> (Auto-calculated)</span>
-                        )}
-                      </span>
-                      <div className="balance-controls">
-                        <span className="balance-label">
-                          Balance: {isRefreshingBalances ? '⟳' : ''} {formatBalance(balanceB, tokenB.decimals)} {tokenB.symbol}
-                        </span>
-                        {!pairExists && (
-                          <button
-                            className="max-button"
-                            onClick={() => {
-                              if (balanceB) {
-                                handleAmountBChange(formatUnits(balanceB, tokenB.decimals));
-                              }
-                            }}
-                            disabled={!isMounted || !isConnected || !balanceB}
-                          >
-                            MAX
-                          </button>
-                        )}
+                <GroupBox>
+                  <div className="liquidity-section">
+                    
+                    {/* Token Pair Selection */}
+                    <div className="token-pair-section">
+                      <div className="pair-selection-header">
+                        <span className="pair-label">Select Token Pair</span>
+                        <span className="pair-helper">Choose two tokens to provide liquidity</span>
                       </div>
-                    </div>
-                    <div className="liquidity-input-row">
-                      <Input
-                        type="number"
-                        placeholder={pairExists ? "Calculated automatically" : "0.0"}
-                        value={amountB}
-                        onChange={(e) => handleAmountBChange(e.target.value)}
-                        className={`liquidity-amount-input ${
-                          amountB && hasInsufficientBalance(amountB, balanceB, tokenB.decimals)
-                            ? 'error'
-                            : ''
-                        } ${pairExists ? 'calculated' : ''}`}
-                        disabled={!isMounted || !isConnected}
-                        readOnly={pairExists && reserves !== null}
-                      />
-                      {amountB && hasInsufficientBalance(amountB, balanceB, tokenB.decimals) && (
-                        <div className="input-error">Insufficient balance</div>
-                      )}
-                      <Select
-                        value={tokenB.address}
-                        onChange={(e) => {
-                          const token = availableTokens.find((t: Token) => t.address === e.target.value);
-                          if (token) setTokenB(token);
-                        }}
-                        options={availableTokens && availableTokens.length > 0 ? availableTokens.map(token => ({
-                          value: token.address,
-                          label: `${token.symbol} (${token.name})`,
-                        })) : [{ value: '', label: 'No tokens available' }]}
-                        className="liquidity-token-select"
-                        disabled={!isMounted || !isConnected}
-                      />
-                    </div>
-                  </div>
 
-                  {/* Pair Status */}
-                  <div className="pair-status">
-                    {pairExists ? (
-                      <span className="pair-exists">
-                        <span>✅</span>
-                        <span>
-                          Trading pair exists - Token B amount calculated automatically based on current pool ratio
-                          {reserves && (
-                            <div className="pool-ratio">
-                              Pool Ratio: 1 {tokenA.symbol} = {
-                                reserves.reserveA > 0
-                                  ? formatUnits((reserves.reserveB * parseUnits('1', tokenA.decimals)) / reserves.reserveA, tokenB.decimals)
-                                  : '0'
-                              } {tokenB.symbol}
-                            </div>
+                      {/* First Token */}
+                      <div className="token-input-container">
+                        <div className="token-input-header">
+                          <div className="token-label-group">
+                            <span className="token-label">First Token</span>
+                            <span className="token-role">You provide</span>
+                          </div>
+                          <div className="balance-info">
+                            <span className="balance-label">
+                              Available: {isRefreshingBalances ? '⟳' : ''} {formatBalance(balanceA, tokenA.decimals)} {tokenA.symbol || 'Select token'}
+                            </span>
+                            {tokenA.address && balanceA && (
+                              <button
+                                className="max-button"
+                                onClick={() => {
+                                  handleAmountAChange(formatUnits(balanceA, tokenA.decimals));
+                                }}
+                                disabled={!isMounted || !isConnected}
+                                title="Use maximum available balance"
+                              >
+                                MAX
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="token-input-controls">
+                          <div className="amount-input-wrapper">
+                            <Input
+                              type="number"
+                              placeholder="0.0"
+                              value={amountA}
+                              onChange={(e) => handleAmountAChange(e.target.value)}
+                              className={`liquidity-amount-input ${amountAError ? 'error' : ''}`}
+                              disabled={!isMounted || !isConnected}
+                            />
+                            {amountAError && (
+                              <div className="win98-validation-error">
+                                <span className="error-icon">⚠️</span>
+                                <span className="error-text">{amountAError}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="token-selector-wrapper">
+                            <TokenSelector
+                              value={tokenA.address}
+                              onChange={(token) => setTokenA(token)}
+                              tokens={availableTokens}
+                              className="liquidity-token-select"
+                              disabled={!isMounted || !isConnected}
+                              placeholder="Select first token"
+                              showBalance={true}
+                              balances={{
+                                [tokenA.address]: balanceA?.toString() || '0'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                    {/* Plus Icon */}
+                    <div className="liquidity-plus">+</div>
+
+                    {/* Token B Input */}
+                    <div className="liquidity-input-group">
+                      <div className="input-header">
+                        <span className="token-label">
+                          Token B
+                          {pairExists && reserves && (
+                            <span className="calculated-indicator"> (Auto-calculated)</span>
                           )}
                         </span>
-                      </span>
-                    ) : (
-                      <span className="pair-new">
-                        <span>🆕</span>
-                        <span>New pair - You'll be the first liquidity provider! Set your own ratio.</span>
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Add Liquidity Button */}
-                  <div className="liquidity-button-container">
-                    <Button
-                      onClick={handleAddLiquidity}
-                      disabled={!canAddLiquidity || isLoading}
-                      className="liquidity-button"
-                    >
-                      {isPending || isConfirming ? (
-                        <span className="button-loading">
-                          <span className="loading-spinner">⏳</span>
-                          {isPending ? 'Confirming Transaction...' : 'Processing...'}
-                        </span>
-                      ) : !canAddLiquidity && isMounted && isConnected ? (
-                        <span>
-                          {!isValidAmount(amountA) || !isValidAmount(amountB)
-                            ? 'Enter Valid Amounts'
-                            : hasInsufficientBalance(amountA, balanceA, tokenA.decimals) ||
-                              hasInsufficientBalance(amountB, balanceB, tokenB.decimals)
-                            ? 'Insufficient Balance'
-                            : 'Add Liquidity'
-                          }
-                        </span>
-                      ) : (
-                        'Add Liquidity'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Remove Liquidity Tab */}
-            {activeTab === 'remove' && (
-              <div className="liquidity-content">
-                <div className="liquidity-section">
-                  <h3 className="section-title">Remove Liquidity</h3>
-
-                  {/* Token Pair Selection */}
-                  <div className="liquidity-input-group">
-                    <div className="input-header">
-                      <span className="token-label">Select Pair</span>
-                    </div>
-                    <div className="liquidity-input-row">
-                      <Select
-                        value={removeTokenA.address}
-                        onChange={(e) => {
-                          const token = availableTokens.find((t: Token) => t.address === e.target.value);
-                          if (token) setRemoveTokenA(token);
-                        }}
-                        options={availableTokens && availableTokens.length > 0 ? availableTokens.map(token => ({
-                          value: token.address,
-                          label: `${token.symbol} (${token.name})`,
-                        })) : [{ value: '', label: 'No tokens available' }]}
-                        className="liquidity-token-select"
-                        disabled={!isMounted || !isConnected}
-                      />
-                      <span className="pair-separator">/</span>
-                      <Select
-                        value={removeTokenB.address}
-                        onChange={(e) => {
-                          const token = availableTokens.find((t: Token) => t.address === e.target.value);
-                          if (token) setRemoveTokenB(token);
-                        }}
-                        options={availableTokens && availableTokens.length > 0 ? availableTokens.map(token => ({
-                          value: token.address,
-                          label: `${token.symbol} (${token.name})`,
-                        })) : [{ value: '', label: 'No tokens available' }]}
-                        className="liquidity-token-select"
-                        disabled={!isMounted || !isConnected}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Percentage Buttons */}
-                  <div className="liquidity-input-group">
-                    <div className="input-header">
-                      <span className="token-label">Amount to Remove</span>
-                    </div>
-                    <div className="percentage-buttons">
-                      {['25', '50', '75', '100'].map((percent) => (
-                        <button
-                          key={percent}
-                          className={`percentage-button ${removePercentage === percent ? 'active' : ''}`}
-                          onClick={() => setRemovePercentage(percent)}
-                          disabled={!isMounted || !isConnected}
-                        >
-                          {percent}%
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* LP Token Amount Input */}
-                  <div className="liquidity-input-group">
-                    <div className="input-header">
-                      <span className="token-label">LP Token Amount</span>
-                      <span className="balance-label">
-                        LP Balance: {isRefreshingBalances ? '⟳' : ''} {formatBalance(removeLpTokenBalance, 18)} {removeTokenA.symbol}/{removeTokenB.symbol}
-                      </span>
-                    </div>
-                    <div className="liquidity-input-row">
-                      <Input
-                        type="number"
-                        placeholder="0.0"
-                        value={lpTokenAmount}
-                        onChange={(e) => setLpTokenAmount(e.target.value)}
-                        className="liquidity-amount-input"
-                        disabled={!isMounted || !isConnected}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Remove Liquidity Button */}
-                  <div className="liquidity-button-container">
-                    <Button
-                      onClick={handleRemoveLiquidity}
-                      disabled={!canRemoveLiquidity || isLoading}
-                      className="liquidity-button remove-button"
-                    >
-                      {isPending || isConfirming ? (
-                        <span>
-                          <span className="loading-spinner">⏳</span>
-                          {isPending ? 'Confirming...' : 'Processing...'}
-                        </span>
-                      ) : (
-                        'Remove Liquidity'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* My Positions Tab */}
-            {activeTab === 'positions' && (
-              <div className="liquidity-content">
-                <div className="liquidity-section">
-                  <div className="section-header">
-                    <h3 className="section-title">My Liquidity Positions</h3>
-                    <button
-                      className="refresh-button"
-                      onClick={refreshBalances}
-                      disabled={isRefreshingBalances}
-                      title="Refresh LP token balances"
-                    >
-                      {isRefreshingBalances ? '⟳' : '↻'}
-                    </button>
-                  </div>
-
-                  <div className="positions-list">
-                    {/* Current Add Liquidity Pair Position */}
-                    {pairAddress && pairAddress !== '0x0000000000000000000000000000000000000000' && (
-                      <div className="position-item">
-                        <div className="position-header">
-                          <span className="pair-name">{tokenA.symbol}/{tokenB.symbol}</span>
-                          <span className="position-status">Active Pool</span>
+                        <div className="balance-controls">
+                          <span className="balance-label">
+                            Balance: {isRefreshingBalances ? '⟳' : ''} {formatBalance(balanceB, tokenB.decimals)} {tokenB.symbol}
+                          </span>
+                          {!pairExists && (
+                            <button
+                              className="max-button"
+                              onClick={() => {
+                                if (balanceB) {
+                                  handleAmountBChange(formatUnits(balanceB, tokenB.decimals));
+                                }
+                              }}
+                              disabled={!isMounted || !isConnected || !balanceB}
+                            >
+                              MAX
+                            </button>
+                          )}
                         </div>
-                        <div className="position-details">
-                          <div className="position-stat">
-                            <span className="stat-label">LP Tokens:</span>
-                            <span className="stat-value">
-                              {isRefreshingBalances ? '⟳' : ''} {formatBalance(lpTokenBalance, 18)} SLP
-                            </span>
+                      </div>
+                      <div className="liquidity-input-row">
+                        <Input
+                          type="number"
+                          placeholder={pairExists ? "Calculated automatically" : "0.0"}
+                          value={amountB}
+                          onChange={(e) => handleAmountBChange(e.target.value)}
+                          className={`liquidity-amount-input ${
+                            amountB && hasInsufficientBalance(amountB, balanceB, tokenB.decimals)
+                              ? 'error'
+                              : ''
+                          } ${pairExists ? 'calculated' : ''}`}
+                          disabled={!isMounted || !isConnected}
+                          readOnly={pairExists && reserves !== null}
+                        />
+                        {amountBError && (
+                          <div className="win98-validation-error">
+                            <span className="error-icon">⚠️</span>
+                            <span className="error-text">{amountBError}</span>
                           </div>
-                          {reserves && (
-                            <>
-                              <div className="position-stat">
-                                <span className="stat-label">Pool Ratio:</span>
-                                <span className="stat-value">
+                        )}
+                        <TokenSelector
+                          value={tokenB.address}
+                          onChange={(token) => setTokenB(token)}
+                          tokens={availableTokens}
+                          className="liquidity-token-select"
+                          disabled={!isMounted || !isConnected}
+                          placeholder="Select Token B"
+                          showBalance={true}
+                          balances={{
+                            [tokenB.address]: balanceB?.toString() || '0'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Pair Status */}
+                    <div className="pair-status">
+                      {pairExists ? (
+                        <span className="pair-exists">
+                          <span>✅</span>
+                          <span>
+                            Trading pair exists - Token B amount calculated automatically based on current pool ratio
+                            {reserves && (
+                              <div className="pool-ratio">
+                                Pool Ratio: 1 {tokenA.symbol} = {
+                                  reserves.reserveA > 0
+                                    ? formatUnits((reserves.reserveB * parseUnits('1', tokenA.decimals)) / reserves.reserveA, tokenB.decimals)
+                                    : '0'
+                                } {tokenB.symbol}
+                              </div>
+                            )}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="pair-new">
+                          <span>🆕</span>
+                          <span>New pair - You'll be the first liquidity provider! Set your own ratio.</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Pool Status Information */}
+                    <div className="pool-status-section">
+                      {pairExists ? (
+                        <div className="status-info existing-pool">
+                          <span className="status-icon">•</span>
+                          <div className="status-details">
+                            <span className="status-title">Existing Pool Found</span>
+                            <span className="status-description">
+                              Second token amount calculated automatically based on current pool ratio
+                            </span>
+                            {reserves && (
+                              <div className="pool-ratio-display">
+                                <span className="ratio-label">Current Pool Ratio:</span>
+                                <span className="ratio-value">
                                   1 {tokenA.symbol} = {
                                     reserves.reserveA > 0
                                       ? formatUnits((reserves.reserveB * parseUnits('1', tokenA.decimals)) / reserves.reserveA, tokenB.decimals)
@@ -983,53 +1060,503 @@ export function LiquidityInterface() {
                                   } {tokenB.symbol}
                                 </span>
                               </div>
-                              <div className="position-stat">
-                                <span className="stat-label">Pool Reserves:</span>
-                                <span className="stat-value">
-                                  {formatUnits(reserves.reserveA, tokenA.decimals)} {tokenA.symbol} / {formatUnits(reserves.reserveB, tokenB.decimals)} {tokenB.symbol}
-                                </span>
-                              </div>
-                            </>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
-
-                    {/* Remove Liquidity Pair Position (if different from add pair) */}
-                    {removePairAddress &&
-                     removePairAddress !== '0x0000000000000000000000000000000000000000' &&
-                     removePairAddress !== pairAddress && (
-                      <div className="position-item">
-                        <div className="position-header">
-                          <span className="pair-name">{removeTokenA.symbol}/{removeTokenB.symbol}</span>
-                          <span className="position-status">Active Pool</span>
-                        </div>
-                        <div className="position-details">
-                          <div className="position-stat">
-                            <span className="stat-label">LP Tokens:</span>
-                            <span className="stat-value">
-                              {isRefreshingBalances ? '⟳' : ''} {formatBalance(removeLpTokenBalance, 18)} SLP
+                      ) : (
+                        <div className="status-info new-pool">
+                          <span className="status-icon">•</span>
+                          <div className="status-details">
+                            <span className="status-title">Creating New Pool</span>
+                            <span className="status-description">
+                              You'll be the first liquidity provider! You can set your own price ratio.
                             </span>
                           </div>
                         </div>
+                      )}
+                    </div>
+
+                  {/* Add Liquidity Button */}
+                  <div className="liquidity-button-container">
+                    <Button
+                      onClick={handleAddLiquidityClick}
+                      disabled={!canAddLiquidity || isLoading}
+                      className="liquidity-button"
+                    >
+                      {isPending || isConfirming ? (
+                        <span className="button-loading">
+                          <span className="win98-loading-spinner">⏳</span>
+                          {isPending ? 'Confirming Transaction...' : 'Processing...'}
+                        </span>
+                      ) : isLoading ? (
+                        <span className="button-loading">
+                          <span className="win98-loading-spinner">⚙️</span>
+                          Preparing Transaction...
+                        </span>
+                      ) : !canAddLiquidity && isMounted && isConnected ? (
+                        <span>
+                          {!isValidAmount(amountA) || !isValidAmount(amountB)
+                            ? 'Enter Valid Amounts'
+                            : hasValidationErrors
+                            ? 'Fix Validation Errors'
+                            : 'Add Liquidity'
+                          }
+                        </span>
+                      ) : (
+                        <span>
+                          Add Liquidity
+                        </span>
+                      )}
+                    </Button>
+
+                    {/* Transaction Progress Indicator */}
+                    {(isPending || isConfirming || isLoading) && (
+                      <div className="win98-progress-indicator">
+                        <div className={`progress-step ${isLoading ? 'active' : 'complete'}`}>
+                          <span className="step-icon">
+                            {isLoading ? '⚙️' : '✅'}
+                          </span>
+                          <span>Preparing Transaction</span>
+                        </div>
+                        <div className={`progress-step ${isPending ? 'active' : isConfirming || isSuccess ? 'complete' : ''}`}>
+                          <span className="step-icon">
+                            {isPending ? '⏳' : isConfirming || isSuccess ? '✅' : '⏸️'}
+                          </span>
+                          <span>Confirming in Wallet</span>
+                        </div>
+                        <div className={`progress-step ${isConfirming ? 'active' : isSuccess ? 'complete' : ''}`}>
+                          <span className="step-icon">
+                            {isConfirming ? '🔄' : isSuccess ? '✅' : '⏸️'}
+                          </span>
+                          <span>Processing on Chain</span>
+                        </div>
                       </div>
                     )}
 
-                    {/* No positions message */}
-                    {(!pairAddress || pairAddress === '0x0000000000000000000000000000000000000000') &&
-                     (!removePairAddress || removePairAddress === '0x0000000000000000000000000000000000000000') && (
-                      <div className="no-positions">
-                        <p>💰 No liquidity positions found</p>
-                        <p>Add liquidity to a trading pair to see your positions here.</p>
+                    {/* Minimum Liquidity Warning */}
+                    {minimumLiquidityError && (
+                      <div className="win98-status-panel warning">
+                        <span className="win98-status-text">
+                          ⚠️ {minimumLiquidityError}
+                        </span>
                       </div>
                     )}
                   </div>
                 </div>
+                  </div>
+                </GroupBox>
+              </div>
+            )}
+
+            {/* Remove Liquidity Tab */}
+            {activeTab === 'remove' && (
+              <div className="liquidity-content">
+                {/* Step Indicator */}
+                <div className="win98-step-indicator">
+                  <div className="step-header">
+                    <span className="step-icon">•</span>
+                    <span className="step-title">Remove Liquidity from Pool</span>
+                  </div>
+                  <div className="step-description">
+                    Remove your tokens from a liquidity pool. You'll burn LP tokens and receive the underlying tokens back.
+                  </div>
+                </div>
+
+                <GroupBox title="Remove Liquidity">
+                  <div className="liquidity-section">
+                    {/* Pool Selection */}
+                    <div className="pool-selection-section">
+                      <div className="selection-header">
+                        <span className="selection-label">Select Pool to Remove From</span>
+                        <span className="selection-helper">Choose the trading pair you want to remove liquidity from</span>
+                      </div>
+
+                      <div className="pool-selector-container">
+                        <div className="pool-selector-row">
+                          <div className="token-selector-group">
+                            <label className="selector-label">First Token</label>
+                            <Select
+                              value={removeTokenA.address}
+                              onChange={(e) => {
+                                const token = availableTokens.find((t: Token) => t.address === e.target.value);
+                                if (token) setRemoveTokenA(token);
+                              }}
+                              options={availableTokens && availableTokens.length > 0 ? availableTokens.map(token => ({
+                                value: token.address,
+                                label: `${token.symbol} (${token.name})`,
+                              })) : [{ value: '', label: 'No tokens available' }]}
+                              className="liquidity-token-select"
+                              disabled={!isMounted || !isConnected}
+                            />
+                          </div>
+
+                          <div className="pair-separator-container">
+                            <span className="pair-separator">/</span>
+                          </div>
+
+                          <div className="token-selector-group">
+                            <label className="selector-label">Second Token</label>
+                            <Select
+                              value={removeTokenB.address}
+                              onChange={(e) => {
+                                const token = availableTokens.find((t: Token) => t.address === e.target.value);
+                                if (token) setRemoveTokenB(token);
+                              }}
+                              options={availableTokens && availableTokens.length > 0 ? availableTokens.map(token => ({
+                                value: token.address,
+                                label: `${token.symbol} (${token.name})`,
+                              })) : [{ value: '', label: 'No tokens available' }]}
+                              className="liquidity-token-select"
+                              disabled={!isMounted || !isConnected}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* LP Token Amount Section */}
+                    <div className="lp-amount-section">
+                      <div className="amount-header">
+                        <span className="amount-label">How much liquidity to remove?</span>
+                        <span className="amount-helper">
+                          Your LP Balance: {isRefreshingBalances ? '⟳' : ''} {formatBalance(removeLpTokenBalance, 18)} {removeTokenA.symbol}/{removeTokenB.symbol}
+                        </span>
+                      </div>
+
+                      {/* Percentage Buttons */}
+                      <div className="percentage-selection">
+                        <span className="percentage-label">Quick Select:</span>
+                        <div className="percentage-buttons">
+                          {['25', '50', '75', '100'].map((percent) => (
+                            <button
+                              key={percent}
+                              className={`percentage-button ${removePercentage === percent ? 'active' : ''}`}
+                              onClick={() => setRemovePercentage(percent)}
+                              disabled={!isMounted || !isConnected}
+                              title={`Remove ${percent}% of your liquidity`}
+                            >
+                              {percent}%
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* LP Token Amount Input */}
+                      <div className="lp-input-container">
+                        <div className="lp-input-header">
+                          <span className="lp-input-label">LP Tokens to Remove</span>
+                          <span className="lp-input-helper">Enter exact amount or use percentage buttons above</span>
+                        </div>
+                        <div className="lp-input-wrapper">
+                          <Input
+                            type="number"
+                            placeholder="0.0"
+                            value={lpTokenAmount}
+                            onChange={(e) => setLpTokenAmount(e.target.value)}
+                            className={`liquidity-amount-input ${lpAmountError ? 'error' : ''}`}
+                            disabled={!isMounted || !isConnected}
+                          />
+                          {lpAmountError && (
+                            <div className="win98-validation-error">
+                              <span className="error-icon">⚠️</span>
+                              <span className="error-text">{lpAmountError}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Remove Liquidity Button */}
+                    <div className="liquidity-button-container">
+                      <Button
+                        onClick={handleRemoveLiquidity}
+                        disabled={!canRemoveLiquidity || isLoading}
+                        className="liquidity-button remove-button"
+                      >
+                        {isPending || isConfirming ? (
+                          <span className="button-loading">
+                            <span className="win98-loading-spinner">⏳</span>
+                            {isPending ? 'Confirming Transaction...' : 'Processing...'}
+                          </span>
+                        ) : isLoading ? (
+                          <span className="button-loading">
+                            <span className="win98-loading-spinner">⚙️</span>
+                            Preparing Transaction...
+                          </span>
+                        ) : !canRemoveLiquidity && isMounted && isConnected ? (
+                          <span>
+                            {!isValidAmount(lpTokenAmount)
+                              ? 'Enter LP Token Amount'
+                              : hasRemoveValidationErrors
+                              ? 'Fix Validation Errors'
+                              : 'Remove Liquidity'
+                            }
+                          </span>
+                        ) : (
+                          <span>
+                            Remove Liquidity
+                          </span>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </GroupBox>
+              </div>
+            )}
+
+            {/* My Positions Tab */}
+            {activeTab === 'positions' && (
+              <div className="liquidity-content">
+                {/* Step Indicator */}
+                <div className="win98-step-indicator">
+                  <div className="step-header">
+                    <span className="step-icon">•</span>
+                    <span className="step-title">My Liquidity Positions</span>
+                    <button
+                      className="refresh-button"
+                      onClick={refreshBalances}
+                      disabled={isRefreshingBalances}
+                      title="Refresh LP token balances"
+                    >
+                      {isRefreshingBalances ? '⟳ Refreshing...' : '↻ Refresh'}
+                    </button>
+                  </div>
+                  <div className="step-description">
+                    View and manage your liquidity positions. Each position represents your share in a trading pool.
+                  </div>
+                </div>
+
+                <GroupBox title="Active Positions Overview">
+                  <div className="positions-summary">
+                    <div className="summary-stats">
+                      <div className="stat-item">
+                        <span className="stat-label">Total Positions:</span>
+                        <span className="stat-value">
+                          {((pairAddress && pairAddress !== '0x0000000000000000000000000000000000000000') ? 1 : 0) +
+                           ((removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000' && removePairAddress !== pairAddress) ? 1 : 0)}
+                        </span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Status:</span>
+                        <span className="stat-value">
+                          {isRefreshingBalances ? '⟳ Updating...' : '✅ Current'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Positions Data Grid */}
+                  <div className="win98-data-grid">
+                    <div className="win98-data-grid-header">
+                      <div className="grid-column-header pair-column">
+                        <span className="header-text">Trading Pair</span>
+                        <span className="header-helper">Token combination</span>
+                      </div>
+                      <div className="grid-column-header balance-column">
+                        <span className="header-text">LP Tokens</span>
+                        <span className="header-helper">Your balance</span>
+                      </div>
+                      <div className="grid-column-header share-column">
+                        <span className="header-text">Pool Share</span>
+                        <span className="header-helper">% of total pool</span>
+                      </div>
+                      <div className="grid-column-header value-column">
+                        <span className="header-text">Token Values</span>
+                        <span className="header-helper">Underlying assets</span>
+                      </div>
+                      <div className="grid-column-header actions-column">
+                        <span className="header-text">Actions</span>
+                        <span className="header-helper">Manage position</span>
+                      </div>
+                    </div>
+
+                    <div className="win98-data-grid-body">
+                      {/* Current Add Liquidity Pair Position */}
+                      {pairAddress && pairAddress !== '0x0000000000000000000000000000000000000000' && (
+                        <div className="win98-data-grid-row">
+                          <div className="grid-cell pair-cell">
+                            <div className="pair-display">
+                              <div className="token-pair-icons">
+                                <div className="token-icon">{tokenA.symbol.charAt(0)}</div>
+                                <div className="token-icon">{tokenB.symbol.charAt(0)}</div>
+                              </div>
+                              <div className="pair-info">
+                                <div className="pair-name">{tokenA.symbol}/{tokenB.symbol}</div>
+                                <div className="pair-status">Active Pool</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="grid-cell balance-cell">
+                            <div className="balance-display">
+                              <div className="balance-amount">
+                                {isRefreshingBalances ? '⟳' : ''} {formatBalance(lpTokenBalance, 18)}
+                              </div>
+                              <div className="balance-unit">SLP</div>
+                            </div>
+                          </div>
+                          <div className="grid-cell share-cell">
+                            <div className="share-display">
+                              {reserves && lpTokenBalance ? (
+                                <div className="share-percentage">
+                                  {((parseFloat(formatUnits(lpTokenBalance, 18)) / parseFloat(formatUnits(reserves.reserveA + reserves.reserveB, 18))) * 100).toFixed(2)}%
+                                </div>
+                              ) : (
+                                <div className="share-percentage">0.00%</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="grid-cell value-cell">
+                            <div className="value-display">
+                              {reserves && lpTokenBalance ? (
+                                <div className="estimated-value">
+                                  <div className="value-breakdown">
+                                    {formatBalance(reserves.reserveA, tokenA.decimals)} {tokenA.symbol}
+                                  </div>
+                                  <div className="value-breakdown">
+                                    {formatBalance(reserves.reserveB, tokenB.decimals)} {tokenB.symbol}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="value-loading">Calculating...</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="grid-cell actions-cell">
+                            <div className="position-actions">
+                              <button
+                                className="action-button remove-button"
+                                onClick={() => {
+                                  setRemoveTokenA(tokenA);
+                                  setRemoveTokenB(tokenB);
+                                  setActiveTab('remove');
+                                }}
+                                title="Remove liquidity from this position"
+                              >
+                                🔄 Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Remove Liquidity Pair Position (if different from add pair) */}
+                      {removePairAddress &&
+                       removePairAddress !== '0x0000000000000000000000000000000000000000' &&
+                       removePairAddress !== pairAddress && (
+                        <div className="win98-data-grid-row">
+                          <div className="grid-cell pair-cell">
+                            <div className="pair-display">
+                              <div className="token-pair-icons">
+                                <div className="token-icon">{removeTokenA.symbol.charAt(0)}</div>
+                                <div className="token-icon">{removeTokenB.symbol.charAt(0)}</div>
+                              </div>
+                              <div className="pair-info">
+                                <div className="pair-name">{removeTokenA.symbol}/{removeTokenB.symbol}</div>
+                                <div className="pair-status">Active Pool</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="grid-cell balance-cell">
+                            <div className="balance-display">
+                              <div className="balance-amount">
+                                {isRefreshingBalances ? '⟳' : ''} {formatBalance(removeLpTokenBalance, 18)}
+                              </div>
+                              <div className="balance-unit">SLP</div>
+                            </div>
+                          </div>
+                          <div className="grid-cell share-cell">
+                            <div className="share-display">
+                              <div className="share-percentage">--</div>
+                            </div>
+                          </div>
+                          <div className="grid-cell value-cell">
+                            <div className="value-display">
+                              <div className="value-loading">Calculating...</div>
+                            </div>
+                          </div>
+                          <div className="grid-cell actions-cell">
+                            <div className="position-actions">
+                              <button
+                                className="action-button remove-button"
+                                onClick={() => setActiveTab('remove')}
+                                title="Remove liquidity from this position"
+                              >
+                                🔄 Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* No positions message */}
+                    {(!pairAddress || pairAddress === '0x0000000000000000000000000000000000000000') &&
+                     (!removePairAddress || removePairAddress === '0x0000000000000000000000000000000000000000') && (
+                      <div className="win98-data-grid-empty">
+                        <div className="empty-state">
+                          <div className="empty-icon">💰</div>
+                          <div className="empty-title">No Liquidity Positions Found</div>
+                          <div className="empty-description">
+                            Add liquidity to a trading pair to see your positions here.
+                          </div>
+                          <button
+                            className="empty-action-button"
+                            onClick={() => setActiveTab('add')}
+                          >
+                            💧 Add Liquidity
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </GroupBox>
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* Confirmation Dialogs */}
+      {pendingTransaction && (
+        <>
+          <LiquidityConfirmationDialog
+            isOpen={showAddConfirmation}
+            onClose={() => {
+              setShowAddConfirmation(false);
+              setPendingTransaction(null);
+            }}
+            onConfirm={executeAddLiquidity}
+            type="add"
+            tokenA={pendingTransaction.tokenA}
+            tokenB={pendingTransaction.tokenB}
+            amountA={pendingTransaction.amountA}
+            amountB={pendingTransaction.amountB}
+            slippage="0.5"
+            isLoading={isPending || isConfirming}
+          />
+
+          <LiquidityConfirmationDialog
+            isOpen={showRemoveConfirmation}
+            onClose={() => {
+              setShowRemoveConfirmation(false);
+              setPendingTransaction(null);
+            }}
+            onConfirm={() => {
+              // TODO: Implement remove liquidity execution
+              setShowRemoveConfirmation(false);
+              setPendingTransaction(null);
+            }}
+            type="remove"
+            tokenA={pendingTransaction.tokenA}
+            tokenB={pendingTransaction.tokenB}
+            amountA={pendingTransaction.amountA}
+            amountB={pendingTransaction.amountB}
+            lpTokenAmount={pendingTransaction.lpTokenAmount}
+            slippage="0.5"
+            isLoading={isPending || isConfirming}
+          />
+        </>
+      )}
     </Window>
   );
 }

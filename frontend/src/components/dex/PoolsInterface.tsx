@@ -72,6 +72,7 @@ export function PoolsInterface() {
 
   return (
     <Window
+      id="pools"
       title="WinDex - Liquidity Pools"
       width={600}
       height={500}
@@ -99,34 +100,37 @@ export function PoolsInterface() {
         {isMounted && isConnected && (
           <>
             {/* Header with Stats */}
-            <div className="pools-header">
-              <div className="pools-stats">
-                <div className="stat-item">
-                  <span className="stat-label">Total Pools:</span>
-                  <span className="stat-value">{getTotalPools()}</span>
+            <div className="win98-groupbox">
+              <div className="win98-groupbox-title">📊 Pool Statistics</div>
+              <div className="pools-stats" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <div className="stat-item">
+                    <span style={{ fontSize: '11px', color: '#666666' }}>Total Pools:</span>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', marginLeft: '4px' }}>{getTotalPools()}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span style={{ fontSize: '11px', color: '#666666' }}>Active Pools:</span>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', marginLeft: '4px' }}>{activePools.length}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span style={{ fontSize: '11px', color: '#666666' }}>All Pairs:</span>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', marginLeft: '4px' }}>{pools.length}</span>
+                  </div>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-label">Active Pools:</span>
-                  <span className="stat-value">{activePools.length}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">All Pairs:</span>
-                  <span className="stat-value">{pools.length}</span>
-                </div>
+
+                <Button
+                  size="small"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing || isLoading}
+                  className="refresh-pools-button"
+                >
+                  {isRefreshing || isLoading ? '⟳ Refreshing...' : '↻ Refresh'}
+                </Button>
               </div>
-              
-              <Button
-                size="small"
-                onClick={handleRefresh}
-                disabled={isRefreshing || isLoading}
-                className="refresh-pools-button"
-              >
-                {isRefreshing || isLoading ? '⟳ Refreshing...' : '↻ Refresh'}
-              </Button>
             </div>
 
             {/* Tab Navigation */}
-            <div className="pools-tabs">
+            <div className="win98-tab-control">
               <button
                 className={`win98-tab ${activeTab === 'active' ? 'active' : ''}`}
                 onClick={() => setActiveTab('active')}

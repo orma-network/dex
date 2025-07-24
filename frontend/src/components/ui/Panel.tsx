@@ -28,7 +28,7 @@ export const Panel: React.FC<PanelProps> = ({
 };
 
 interface GroupBoxProps {
-  title: string;
+  title?: string;
   children: React.ReactNode;
   className?: string;
 }
@@ -38,9 +38,19 @@ export const GroupBox: React.FC<GroupBoxProps> = ({
   children,
   className = '',
 }) => {
+  // Use native fieldset/legend for proper Windows 98 GroupBox behavior
+  if (title) {
+    return (
+      <fieldset className={`win98-fieldset ${className}`}>
+        <legend className="win98-legend">{title}</legend>
+        {children}
+      </fieldset>
+    );
+  }
+
+  // Fallback to div for titleless GroupBox
   return (
     <div className={`win98-groupbox ${className}`}>
-      <div className="win98-groupbox-label">{title}</div>
       {children}
     </div>
   );

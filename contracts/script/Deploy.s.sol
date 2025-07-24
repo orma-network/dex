@@ -275,7 +275,7 @@ contract Deploy is Script {
         console.log("Frontend configuration generated: frontend-config.ts");
     }
 
-    function _verifyContracts() internal {
+    function _verifyContracts() internal pure {
         console.log("Contract verification would be performed here");
         console.log("Note: Implement verification logic for specific block explorers");
     }

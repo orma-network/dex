@@ -433,6 +433,7 @@ export function TokenizerInterface() {
 
   return (
     <Window
+      id="tokenizer"
       title="WinDex - Token Creator"
       width={500}
       height={600}
@@ -460,7 +461,7 @@ export function TokenizerInterface() {
         {/* Tab Navigation */}
         {isMounted && isConnected && (
           <>
-            <div className="tokenizer-tabs">
+            <div className="win98-tab-control">
               <button
                 className={`win98-tab ${activeTab === 'create' ? 'active' : ''}`}
                 onClick={() => setActiveTab('create')}
@@ -478,72 +479,81 @@ export function TokenizerInterface() {
             {/* Create Token Tab */}
             {activeTab === 'create' && (
               <div className="tokenizer-content">
-                <div className="tokenizer-section">
-                  <h3 className="section-title">Create New Token</h3>
-                  
+                <div className="win98-groupbox">
+                  <div className="win98-groupbox-title">🪙 Create New Token</div>
+
                   <div className="tokenizer-form">
                     {/* Token Name */}
-                    <div className="form-group">
-                      <label className="form-label">Token Name *</label>
+                    <div className="win98-form-row">
+                      <label className="win98-form-label">Name:</label>
                       <Input
                         type="text"
                         placeholder="e.g., My Custom Token"
                         value={tokenData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="form-input"
+                        className="win98-form-input"
                         maxLength={50}
                       />
                     </div>
 
                     {/* Token Symbol */}
-                    <div className="form-group">
-                      <label className="form-label">Token Symbol *</label>
+                    <div className="win98-form-row">
+                      <label className="win98-form-label">Symbol:</label>
                       <Input
                         type="text"
                         placeholder="e.g., MCT"
                         value={tokenData.symbol}
                         onChange={(e) => handleInputChange('symbol', e.target.value.toUpperCase())}
-                        className="form-input"
+                        className="win98-form-input"
                         maxLength={10}
                       />
                     </div>
 
-                    {/* Decimals and Initial Supply Row */}
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label className="form-label">Decimals</label>
-                        <Input
-                          type="number"
-                          value={tokenData.decimals}
-                          onChange={(e) => handleInputChange('decimals', parseInt(e.target.value) || 18)}
-                          className="form-input"
-                          min={0}
-                          max={18}
-                        />
-                      </div>
-                      
-                      <div className="form-group">
-                        <label className="form-label">Initial Supply *</label>
-                        <Input
-                          type="number"
-                          placeholder="e.g., 1000000"
-                          value={tokenData.initialSupply}
-                          onChange={(e) => handleInputChange('initialSupply', e.target.value)}
-                          className="form-input"
-                          min={0}
-                          step="any"
-                        />
-                      </div>
+                    {/* Decimals */}
+                    <div className="win98-form-row">
+                      <label className="win98-form-label">Decimals:</label>
+                      <Input
+                        type="number"
+                        value={tokenData.decimals}
+                        onChange={(e) => handleInputChange('decimals', parseInt(e.target.value) || 18)}
+                        className="win98-form-input"
+                        min={0}
+                        max={18}
+                      />
+                    </div>
+
+                    {/* Initial Supply */}
+                    <div className="win98-form-row">
+                      <label className="win98-form-label">Supply:</label>
+                      <Input
+                        type="number"
+                        placeholder="e.g., 1000000"
+                        value={tokenData.initialSupply}
+                        onChange={(e) => handleInputChange('initialSupply', e.target.value)}
+                        className="win98-form-input"
+                        min={0}
+                        step="any"
+                      />
                     </div>
 
                     {/* Description */}
-                    <div className="form-group">
-                      <label className="form-label">Description (Optional)</label>
+                    <div className="win98-form-section">
+                      <label style={{ fontSize: '11px', color: '#000000', marginBottom: '4px', display: 'block' }}>
+                        Description (Optional):
+                      </label>
                       <textarea
                         placeholder="Describe your token's purpose..."
                         value={tokenData.description}
                         onChange={(e) => handleInputChange('description', e.target.value)}
-                        className="form-textarea"
+                        style={{
+                          width: '100%',
+                          height: '60px',
+                          border: '1px inset #c0c0c0',
+                          padding: '4px',
+                          fontSize: '11px',
+                          fontFamily: 'MS Sans Serif, sans-serif',
+                          resize: 'none'
+                        }}
                         maxLength={200}
                         rows={3}
                       />

@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useWindowManager } from '@/contexts/WindowManagerContext';
 
 interface WindowProps {
+  id?: string;
   title: string;
   children: React.ReactNode;
   width?: number;
@@ -22,6 +24,7 @@ interface WindowProps {
 }
 
 export const Window: React.FC<WindowProps> = ({
+  id,
   title,
   children,
   width = 400,
@@ -39,23 +42,46 @@ export const Window: React.FC<WindowProps> = ({
   onFocus,
   className = '',
 }) => {
-  const [position, setPosition] = useState({ x, y });
-  const [size, setSize] = useState({ width, height });
+  // Try to use window manager if available and id is provided
+  const windowManager = (() => {
+    try {
+      return useWindowManager();
+    } catch {
+      return null;
+    }
+  })();
+
+  const windowState = id && windowManager ? windowManager.getWindow(id) : null;
+  // Use window manager state if available, otherwise use local state
+  const [localPosition, setLocalPosition] = useState({ x, y });
+  const [localSize, setLocalSize] = useState({ width, height });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [isMaximized, setIsMaximized] = useState(false);
+  const [localIsMaximized, setLocalIsMaximized] = useState(false);
   const [previousState, setPreviousState] = useState({ x, y, width, height });
+
+  // Determine actual state values
+  const position = windowState?.position || localPosition;
+  const size = windowState?.size || localSize;
+  const isMaximized = windowState?.isMaximized || localIsMaximized;
+  const isActive = windowState ? (windowManager?.activeWindowId === id) : active;
 
   const windowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
-        setPosition({
+        const newPosition = {
           x: e.clientX - dragStart.x,
           y: e.clientY - dragStart.y,
-        });
+        };
+
+        if (windowManager && id) {
+          windowManager.updateWindowPosition(id, newPosition);
+        } else {
+          setLocalPosition(newPosition);
+        }
       }
     };
 
@@ -89,31 +115,44 @@ export const Window: React.FC<WindowProps> = ({
         y: e.clientY - rect.top,
       });
       setIsDragging(true);
+      if (windowManager && id) {
+        windowManager.focusWindow(id);
+      }
       onFocus?.();
     }
   };
 
   const handleMaximize = () => {
-    if (isMaximized) {
-      // Restore
-      setPosition({ x: previousState.x, y: previousState.y });
-      setSize({ width: previousState.width, height: previousState.height });
-      setIsMaximized(false);
+    if (windowManager && id) {
+      windowManager.maximizeWindow(id);
     } else {
-      // Maximize
-      setPreviousState({ x: position.x, y: position.y, width: size.width, height: size.height });
-      setPosition({ x: 0, y: 0 });
-      setSize({ width: window.innerWidth, height: window.innerHeight - 40 }); // Account for taskbar
-      setIsMaximized(true);
+      if (isMaximized) {
+        // Restore
+        setLocalPosition({ x: previousState.x, y: previousState.y });
+        setLocalSize({ width: previousState.width, height: previousState.height });
+        setLocalIsMaximized(false);
+      } else {
+        // Maximize
+        setPreviousState({ x: position.x, y: position.y, width: size.width, height: size.height });
+        setLocalPosition({ x: 0, y: 0 });
+        setLocalSize({ width: window.innerWidth, height: window.innerHeight - 40 }); // Account for taskbar
+        setLocalIsMaximized(true);
+      }
     }
     onMaximize?.();
   };
 
   const handleMinimize = () => {
+    if (windowManager && id) {
+      windowManager.minimizeWindow(id);
+    }
     onMinimize?.();
   };
 
   const handleClose = () => {
+    if (windowManager && id) {
+      windowManager.closeWindow(id);
+    }
     onClose?.();
   };
 
@@ -123,55 +162,68 @@ export const Window: React.FC<WindowProps> = ({
     top: position.y,
     width: size.width,
     height: size.height,
-    zIndex: className?.includes('z-[') ? undefined : (active ? 1000 : 1),
+    zIndex: className?.includes('z-[') ? undefined : (windowState?.zIndex || (isActive ? 1000 : 1)),
+    display: windowState?.isOpen === false ? 'none' : undefined,
   };
+
+  // Don't render if window is closed via window manager
+  if (windowState?.isOpen === false) {
+    return null;
+  }
+
+  // Don't render if window is minimized via window manager
+  if (windowState?.isMinimized) {
+    return null;
+  }
 
   return (
     <div
       ref={windowRef}
-      className={`win98-window ${active ? 'active' : ''} ${className}`}
+      className={`window ${className}`}
       style={windowStyle}
-      onClick={onFocus}
+      onClick={() => {
+        if (windowManager && id) {
+          windowManager.focusWindow(id);
+        }
+        onFocus?.();
+      }}
     >
       {/* Title Bar */}
       <div
-        className={`win98-titlebar ${active ? '' : 'inactive'}`}
+        className={`title-bar ${isActive ? '' : 'inactive'}`}
         onMouseDown={handleTitleBarMouseDown}
       >
-        <div className="win98-titlebar-text">{title}</div>
-        <div className="win98-titlebar-controls">
+        <div className="title-bar-text">{title}</div>
+        <div className="title-bar-controls">
           {minimizable && (
             <button
-              className="win98-control-button"
+              aria-label="Minimize"
+              className="minimize"
               onClick={handleMinimize}
               title="Minimize"
-            >
-              _
-            </button>
+            />
           )}
           {maximizable && (
             <button
-              className="win98-control-button"
+              aria-label={isMaximized ? "Restore" : "Maximize"}
+              className={isMaximized ? "restore" : "maximize"}
               onClick={handleMaximize}
               title={isMaximized ? "Restore" : "Maximize"}
-            >
-              {isMaximized ? '❐' : '□'}
-            </button>
+            />
           )}
           {closable && (
             <button
-              className="win98-control-button"
+              aria-label="Close"
+              className="close"
               onClick={handleClose}
               title="Close"
-            >
-              ✕
-            </button>
+            />
           )}
         </div>
       </div>
 
       {/* Window Content */}
-      <div className="win98-window-content">
+      <div className="window-body">
         {children}
       </div>
     </div>

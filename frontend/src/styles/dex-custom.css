@@ -1,0 +1,2865 @@
+/* WinDex DEX Custom Styles */
+/* This file contains DEX-specific styles that extend or override 98.css */
+
+/* Liquidity Interface Container Fixes */
+.liquidity-dialog-container {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+/* GroupBox content bounds handled in main definition below */
+
+/* Liquidity content container */
+.liquidity-content {
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: visible; /* Ensure GroupBox titles are not clipped */
+  box-sizing: border-box;
+}
+
+/* Liquidity section container */
+.liquidity-section {
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+}
+
+/* Custom CSS Variables for DEX-specific colors and values */
+:root {
+  --win98-desktop-bg: #008080;
+  --win98-text-secondary: #666666;
+  --dex-success: #00ff00;
+  --dex-error: #ff0000;
+  --dex-warning: #ffff00;
+}
+
+/* Desktop background override */
+body {
+  background-color: var(--win98-desktop-bg);
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+  user-select: none;
+}
+
+/* Custom button sizes for DEX components */
+.button-small {
+  font-size: 10px;
+  padding: 2px 6px;
+  min-width: 50px;
+  min-height: 18px;
+}
+
+.button-large {
+  font-size: 12px;
+  padding: 6px 12px;
+  min-width: 100px;
+  min-height: 28px;
+}
+
+/* Input error styling */
+.input-error {
+  color: var(--dex-error);
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+/* Desktop icons styling */
+.desktop-icons {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.desktop-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 64px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 2px;
+  transition: background-color 0.1s;
+}
+
+.desktop-icon:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.desktop-icon:active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.desktop-icon .icon {
+  font-size: 32px;
+  margin-bottom: 4px;
+}
+
+.desktop-icon .label {
+  font-size: 11px;
+  color: white;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  line-height: 1.2;
+}
+
+/* Desktop layout */
+.win98-desktop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 30px; /* Account for taskbar */
+  background: var(--win98-desktop-bg);
+  overflow: hidden;
+}
+
+/* Taskbar styling (extends 98.css) */
+.win98-taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background-color: #c0c0c0;
+  border-top: 1px solid #dfdfdf;
+  display: flex;
+  align-items: center;
+  z-index: 10000;
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+}
+
+.win98-start-button {
+  height: 22px;
+  padding: 0 8px;
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  margin: 2px;
+  font-weight: bold;
+  color: #000000;
+}
+
+.win98-start-button:hover {
+  background-color: #dfdfdf;
+}
+
+.win98-start-button:active,
+.win98-start-button.active {
+  border: 1px inset #c0c0c0;
+  background-color: #808080;
+}
+
+/* Ensure logo remains crisp in active state */
+.win98-start-button:active .start-icon-image,
+.win98-start-button.active .start-icon-image {
+  filter: none; /* Prevent any filtering that might blur the image */
+}
+
+.start-icon {
+  font-size: 12px;
+}
+
+.start-icon-image {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  image-rendering: pixelated; /* Maintain crisp pixel art appearance */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  vertical-align: middle; /* Ensure proper vertical alignment with text */
+  flex-shrink: 0; /* Prevent the image from shrinking */
+}
+
+.win98-taskbar-buttons {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+  padding: 0 4px;
+  overflow-x: auto;
+}
+
+.win98-taskbar-button {
+  height: 22px;
+  min-width: 120px;
+  max-width: 160px;
+  padding: 0 8px;
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  color: #000000;
+}
+
+.win98-taskbar-button:hover {
+  background-color: #dfdfdf;
+}
+
+.win98-taskbar-button.active {
+  border: 1px inset #c0c0c0;
+  background-color: #808080;
+}
+
+.win98-taskbar-button.minimized {
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.taskbar-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.taskbar-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.win98-system-tray {
+  height: 22px;
+  padding: 0 8px;
+  background-color: #c0c0c0;
+  border: 1px inset #c0c0c0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px;
+}
+
+.system-time {
+  font-size: 11px;
+  font-family: 'MS Sans Serif', sans-serif;
+  color: #000000;
+  border-left: 1px solid #404040;
+  padding-left: 8px;
+  margin-left: 4px;
+}
+
+/* Wallet Status Indicator */
+.wallet-status-indicator {
+  position: relative;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: background-color 0.1s;
+}
+
+.wallet-status-indicator.connected {
+  color: var(--dex-success);
+}
+
+.wallet-status-indicator.disconnected {
+  color: #808080;
+  opacity: 0.7;
+}
+
+.wallet-status-indicator:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.wallet-tooltip {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+  padding: 4px 6px;
+  font-size: 9px;
+  white-space: nowrap;
+  z-index: 10002;
+  margin-bottom: 2px;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-address {
+  font-family: monospace;
+  color: #000000;
+  font-weight: bold;
+}
+
+.tooltip-balance {
+  color: var(--win98-text-secondary);
+  margin-top: 1px;
+}
+
+/* Start Menu styling */
+.win98-start-menu {
+  position: fixed;
+  bottom: 32px;
+  left: 2px;
+  width: 280px;
+  background-color: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 10001;
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+}
+
+.start-menu-header {
+  background: linear-gradient(90deg, #0000ff 0%, #8080ff 100%);
+  color: white;
+  padding: 8px 12px;
+  border-bottom: 1px solid #404040;
+}
+
+.start-menu-title {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.start-menu-subtitle {
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+.start-menu-items {
+  padding: 4px 0;
+}
+
+.start-menu-section {
+  margin: 4px 0;
+}
+
+.start-menu-section-title {
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--win98-text-secondary);
+  padding: 4px 12px 2px 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.start-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.start-menu-item:hover:not(.disabled) {
+  background-color: #dfdfdf;
+}
+
+.start-menu-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menu-item-icon {
+  font-size: 16px;
+  margin-right: 8px;
+  width: 20px;
+  text-align: center;
+}
+
+.menu-item-text {
+  font-size: 11px;
+  color: #000000;
+}
+
+.start-menu-separator {
+  height: 1px;
+  background-color: #404040;
+  margin: 4px 8px;
+}
+
+.start-menu-wallet-status {
+  padding: 0 4px;
+}
+
+.wallet-connected-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  background-color: #dfdfdf;
+  border: 1px inset #c0c0c0;
+  margin: 2px 4px;
+}
+
+.wallet-info {
+  margin-left: 8px;
+}
+
+.wallet-status-text {
+  font-size: 10px;
+  color: #000000;
+  font-weight: bold;
+}
+
+.wallet-address-text {
+  font-size: 9px;
+  color: var(--win98-text-secondary);
+  font-family: monospace;
+}
+
+.wallet-balance-text {
+  font-size: 8px;
+  color: var(--win98-text-secondary);
+  margin-top: 1px;
+}
+
+.start-menu-wallet-connect {
+  padding: 4px 8px;
+}
+
+.start-menu-wallet-actions {
+  padding: 4px 8px;
+  margin-top: 4px;
+}
+
+.start-menu-disconnect-btn {
+  width: 100%;
+  font-size: 10px;
+  padding: 4px 8px;
+  min-height: 20px;
+}
+
+/* DEX-specific component styles */
+
+/* Windows 98 Standard Component Patterns */
+
+/* Standard Groupbox Pattern */
+.win98-groupbox {
+  border: 2px groove #c0c0c0;
+  padding: 12px 8px 8px 8px;
+  margin: 12px 0; /* Increased margin to accommodate title */
+  position: relative;
+  background-color: #c0c0c0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: visible; /* Allow title to extend outside */
+}
+
+/* Native fieldset/legend approach for authentic Windows 98 GroupBox */
+.win98-fieldset {
+  border: 2px groove #c0c0c0;
+  padding: 12px 8px 8px 8px;
+  margin: 12px 0;
+  background-color: #c0c0c0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.win98-legend {
+  background: #c0c0c0;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: normal;
+  color: #000000;
+  font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+}
+
+/* Fallback for titleless GroupBox (div-based) */
+.win98-groupbox-title {
+  position: absolute;
+  top: -8px;
+  left: 8px;
+  background: #c0c0c0;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: normal;
+  color: #000000;
+  z-index: 1;
+  line-height: 1;
+  font-family: "Pixelated MS Sans Serif", Arial, sans-serif;
+  white-space: nowrap;
+}
+
+/* Standard Tab Control Pattern */
+.win98-tab-control {
+  border-bottom: 1px solid #808080;
+  margin-bottom: 8px;
+  display: flex;
+  background-color: #c0c0c0;
+}
+
+.win98-tab {
+  border: 1px solid #808080;
+  border-bottom: none;
+  background: #dfdfdf;
+  padding: 4px 12px;
+  margin-right: 2px;
+  position: relative;
+  top: 1px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #000000;
+  user-select: none;
+}
+
+.win98-tab:hover {
+  background: #e0e0e0;
+}
+
+.win98-tab.active {
+  background: #c0c0c0;
+  border-bottom: 1px solid #c0c0c0;
+  z-index: 1;
+  top: 0;
+}
+
+/* Standard Status Bar Pattern */
+.win98-status-bar {
+  border-top: 1px solid #808080;
+  background: #c0c0c0;
+  padding: 2px 8px;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 20px;
+}
+
+.win98-status-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.win98-status-text {
+  color: #000000;
+}
+
+/* Standard Progress Indicator */
+.win98-progress {
+  border: 1px inset #c0c0c0;
+  background-color: #ffffff;
+  height: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.win98-progress-bar {
+  background: linear-gradient(90deg, #0000ff 0%, #8080ff 50%, #0000ff 100%);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+/* Standard Loading Indicator */
+.win98-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #000000;
+}
+
+.win98-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #c0c0c0;
+  border-top: 2px solid #0000ff;
+  border-radius: 50%;
+  animation: win98-spin 1s linear infinite;
+}
+
+@keyframes win98-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Token display components */
+.token-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: 1px inset #c0c0c0;
+  background-color: #ffffff;
+}
+
+.token-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #dfdfdf;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.token-info {
+  flex: 1;
+}
+
+.token-symbol {
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.token-name {
+  font-size: 9px;
+  color: var(--win98-text-secondary);
+}
+
+.token-balance {
+  font-size: 10px;
+  font-family: monospace;
+}
+
+/* Enhanced Form Styling */
+.win98-form-section {
+  margin-bottom: 16px;
+}
+
+.win98-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.win98-form-label {
+  font-size: 11px;
+  color: #000000;
+  min-width: 80px;
+  text-align: right;
+  flex-shrink: 0; /* Prevent label from shrinking */
+}
+
+.win98-form-input {
+  flex: 1;
+  height: 23px; /* Consistent height with other inputs */
+  box-sizing: border-box;
+}
+
+/* Ensure form inputs in field-row containers have proper styling */
+.win98-form-row .field-row {
+  flex: 1;
+  margin: 0;
+  display: flex;
+}
+
+.win98-form-row .field-row input {
+  width: 100%;
+  height: 23px;
+  box-sizing: border-box;
+}
+
+/* Enhanced Token Selection Component */
+.win98-token-selector {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.win98-token-button {
+  width: 100%;
+  min-height: 32px;
+  background-color: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+  color: #000000;
+}
+
+.win98-token-button:hover:not(:disabled) {
+  background-color: #dfdfdf;
+}
+
+.win98-token-button:active:not(:disabled) {
+  border: 2px inset #c0c0c0;
+}
+
+.win98-token-button:disabled {
+  color: #808080;
+  cursor: not-allowed;
+  background-color: #c0c0c0;
+}
+
+.win98-token-button:focus {
+  outline: 2px dotted #000000;
+  outline-offset: -2px;
+}
+
+.win98-token-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.win98-token-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #dfdfdf;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  border: 1px solid #808080;
+  color: #000000;
+}
+
+.win98-token-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.win98-token-symbol {
+  font-weight: bold;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.win98-token-name {
+  font-size: 9px;
+  color: #666666;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.win98-token-placeholder {
+  color: #808080;
+  font-style: italic;
+}
+
+.dropdown-arrow {
+  font-size: 8px;
+  color: #000000;
+  transition: transform 0.2s ease;
+  margin-left: 4px;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.win98-token-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  z-index: 1000;
+  max-height: 300px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.win98-token-search-container {
+  padding: 4px;
+  border-bottom: 1px solid #808080;
+}
+
+.win98-token-search {
+  width: 100%;
+  border: 1px inset #c0c0c0;
+  padding: 2px 4px;
+  font-size: 11px;
+  font-family: 'MS Sans Serif', sans-serif;
+}
+
+.win98-token-list {
+  max-height: 240px;
+  overflow-y: auto;
+  background-color: #ffffff;
+  border: 1px inset #c0c0c0;
+  margin: 2px;
+}
+
+.win98-token-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid #dfdfdf;
+  background-color: #ffffff;
+}
+
+.win98-token-option:last-child {
+  border-bottom: none;
+}
+
+.win98-token-option:hover {
+  background-color: #dfdfdf;
+}
+
+.win98-token-option.selected {
+  background-color: #0000ff;
+  color: #ffffff;
+}
+
+.win98-token-option.selected .win98-token-name {
+  color: #cccccc;
+}
+
+.win98-token-option:focus {
+  outline: 2px dotted #000000;
+  outline-offset: -2px;
+  background-color: #dfdfdf;
+}
+
+.win98-token-option:focus.selected {
+  outline-color: #ffffff;
+}
+
+.win98-token-balance {
+  font-family: monospace;
+  font-size: 10px;
+  color: #666666;
+  margin-left: auto;
+}
+
+.win98-token-option.selected .win98-token-balance {
+  color: #cccccc;
+}
+
+.win98-token-no-results {
+  padding: 12px 8px;
+  text-align: center;
+  color: #808080;
+  font-style: italic;
+  font-size: 10px;
+}
+
+/* Liquidity Confirmation Dialog Styles */
+.liquidity-confirmation-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+}
+
+.confirmation-section {
+  padding: 8px;
+}
+
+.token-pair-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dfdfdf;
+}
+
+.pair-name {
+  font-weight: bold;
+  font-size: 12px;
+  color: #000000;
+}
+
+.pair-type {
+  font-size: 10px;
+  color: #666666;
+}
+
+.add-liquidity-details,
+.remove-liquidity-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.token-amount-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background-color: #f0f0f0;
+  border: 1px inset #c0c0c0;
+}
+
+.token-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.token-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #dfdfdf;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  border: 1px solid #808080;
+}
+
+.token-symbol {
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.amount-value {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: bold;
+  color: #000000;
+}
+
+.plus-separator {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #666666;
+  margin: 4px 0;
+}
+
+.lp-token-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background-color: #e0e0ff;
+  border: 1px inset #c0c0c0;
+  margin-bottom: 8px;
+}
+
+.lp-label {
+  font-size: 11px;
+  color: #000000;
+}
+
+.lp-amount {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: bold;
+  color: #0000ff;
+}
+
+.estimated-output {
+  margin-top: 8px;
+}
+
+.output-label {
+  font-size: 10px;
+  color: #666666;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+.details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px dotted #cccccc;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 10px;
+  color: #666666;
+}
+
+.detail-value {
+  font-size: 10px;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+/* Windows 98 Data Grid Styles */
+.win98-data-grid {
+  border: 2px inset #c0c0c0;
+  background-color: #ffffff;
+  margin: 8px 0;
+  font-size: 11px;
+}
+
+.win98-data-grid-header {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr 1.5fr 1fr;
+  background-color: #c0c0c0;
+  border-bottom: 1px solid #808080;
+}
+
+.grid-column-header {
+  padding: 6px 8px;
+  font-weight: bold;
+  font-size: 10px;
+  color: #000000;
+  border-right: 1px solid #808080;
+  display: flex;
+  align-items: center;
+  background-color: #c0c0c0;
+  border-bottom: 1px outset #c0c0c0;
+}
+
+.grid-column-header:last-child {
+  border-right: none;
+}
+
+.win98-data-grid-body {
+  background-color: #ffffff;
+}
+
+.win98-data-grid-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr 1.5fr 1fr;
+  border-bottom: 1px solid #dfdfdf;
+  min-height: 48px;
+}
+
+.win98-data-grid-row:hover {
+  background-color: #f0f0f0;
+}
+
+.win98-data-grid-row:last-child {
+  border-bottom: none;
+}
+
+.grid-cell {
+  padding: 8px;
+  border-right: 1px solid #dfdfdf;
+  display: flex;
+  align-items: center;
+}
+
+.grid-cell:last-child {
+  border-right: none;
+}
+
+/* Pair Display */
+.pair-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.token-pair-icons {
+  display: flex;
+  align-items: center;
+  gap: -4px;
+}
+
+.token-pair-icons .token-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #dfdfdf;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  border: 1px solid #808080;
+  margin-left: -2px;
+}
+
+.token-pair-icons .token-icon:first-child {
+  margin-left: 0;
+  z-index: 2;
+}
+
+.pair-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.pair-name {
+  font-weight: bold;
+  font-size: 11px;
+  color: #000000;
+}
+
+.pair-status {
+  font-size: 9px;
+  color: #666666;
+}
+
+/* Balance Display */
+.balance-display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.balance-amount {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: bold;
+  color: #000000;
+}
+
+.balance-unit {
+  font-size: 9px;
+  color: #666666;
+}
+
+/* Share Display */
+.share-display {
+  text-align: center;
+}
+
+.share-percentage {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: bold;
+  color: #0000ff;
+}
+
+/* Value Display */
+.value-display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.estimated-value {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.value-breakdown {
+  font-family: monospace;
+  font-size: 10px;
+  color: #000000;
+}
+
+.value-loading {
+  font-size: 10px;
+  color: #666666;
+  font-style: italic;
+}
+
+/* Position Actions */
+.position-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.action-button {
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+  padding: 4px 8px;
+  font-size: 9px;
+  cursor: pointer;
+  color: #000000;
+}
+
+.action-button:hover {
+  background-color: #dfdfdf;
+}
+
+.action-button:active {
+  border: 1px inset #c0c0c0;
+}
+
+.remove-button {
+  color: #cc0000;
+}
+
+/* Empty State */
+.win98-data-grid-empty {
+  padding: 32px;
+  text-align: center;
+  background-color: #ffffff;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty-icon {
+  font-size: 32px;
+}
+
+.empty-title {
+  font-weight: bold;
+  font-size: 12px;
+  color: #000000;
+}
+
+.empty-description {
+  font-size: 10px;
+  color: #666666;
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+.empty-action-button {
+  background-color: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  padding: 6px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #000000;
+  margin-top: 8px;
+}
+
+.empty-action-button:hover {
+  background-color: #dfdfdf;
+}
+
+.empty-action-button:active {
+  border: 2px inset #c0c0c0;
+}
+
+/* Form Validation Styles */
+.win98-validation-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 4px 6px;
+  background-color: #ffeeee;
+  border: 1px solid #ff6666;
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+.error-icon {
+  font-size: 12px;
+  color: #cc0000;
+}
+
+.error-text {
+  color: #cc0000;
+  font-weight: normal;
+}
+
+/* Enhanced Input States */
+.liquidity-amount-input.error {
+  border-color: #ff6666 !important;
+  background-color: #ffeeee !important;
+}
+
+.liquidity-amount-input.calculated {
+  background-color: #f0f0ff !important;
+  border-color: #6666ff !important;
+}
+
+/* Loading States */
+.win98-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(192, 192, 192, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.win98-loading-content {
+  background-color: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.win98-loading-spinner {
+  animation: win98-spin 1s linear infinite;
+}
+
+@keyframes win98-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Progress Indicators */
+.win98-progress-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background-color: #f0f0f0;
+  border: 1px inset #c0c0c0;
+  margin: 8px 0;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.progress-step.active {
+  color: #0000ff;
+  font-weight: bold;
+}
+
+.progress-step.complete {
+  color: #00cc00;
+}
+
+.progress-step.error {
+  color: #cc0000;
+}
+
+.step-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+}
+
+/* Enhanced Focus and Accessibility Styles */
+button:focus,
+input:focus,
+select:focus {
+  outline: 2px dotted #000000;
+  outline-offset: -2px;
+}
+
+.liquidity-amount-input:focus {
+  border-color: #0000ff !important;
+  background-color: #ffffff !important;
+}
+
+.refresh-button:focus,
+.max-button:focus,
+.action-button:focus {
+  outline: 1px dotted #000000;
+  outline-offset: -1px;
+}
+
+/* Button hover enhancements */
+.liquidity-button:hover:not(:disabled) {
+  background-color: #dfdfdf;
+  border-color: #808080;
+}
+
+.max-button:hover:not(:disabled) {
+  background-color: #e0e0ff;
+  border-color: #6666ff;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background-color: #e0ffe0;
+  border-color: #66cc66;
+}
+
+/* Keyboard navigation indicators */
+.win98-tab:focus {
+  outline: 2px dotted #000000;
+  outline-offset: -2px;
+}
+
+.win98-tab.active:focus {
+  outline-color: #ffffff;
+}
+
+/* Enhanced UX Improvements */
+
+/* Step Indicator - Compact Version */
+.win98-step-indicator {
+  background-color: #f0f0f0;
+  border: 1px inset #c0c0c0;
+  padding: 8px; /* Reduced from 12px */
+  margin-bottom: 8px; /* Reduced from 12px */
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Reduced from 8px */
+  margin-bottom: 4px; /* Reduced from 6px */
+}
+
+.step-icon {
+  font-size: 16px;
+}
+
+.step-title {
+  font-weight: bold;
+  font-size: 12px;
+  color: #000000;
+  flex: 1;
+}
+
+.step-description {
+  font-size: 10px;
+  color: #666666;
+  line-height: 1.3; /* Reduced from 1.4 */
+  margin-left: 20px; /* Reduced from 24px */
+}
+
+/* Token Pair Section */
+.token-pair-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.pair-selection-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.pair-label {
+  font-weight: bold;
+  font-size: 11px;
+  color: #000000;
+  display: block;
+}
+
+.pair-helper {
+  font-size: 9px;
+  color: #666666;
+  display: block;
+  margin-top: 2px;
+}
+
+/* Token Input Container */
+.token-input-container {
+  background-color: #ffffff;
+  border: 1px inset #c0c0c0;
+  padding: 8px;
+  margin: 4px 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.token-input-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.token-label-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.token-label {
+  font-weight: bold;
+  font-size: 11px;
+  color: #000000;
+}
+
+.token-role {
+  font-size: 9px;
+  color: #666666;
+  margin-top: 1px;
+}
+
+.balance-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.balance-label {
+  font-size: 10px;
+  color: #666666;
+  font-family: monospace;
+}
+
+/* Token Input Controls */
+.token-input-controls {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 8px;
+  align-items: start;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.amount-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.token-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pair Connector */
+.pair-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+.connector-line {
+  flex: 1;
+  height: 1px;
+  background-color: #808080;
+}
+
+.connector-icon {
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  margin: 0 8px;
+}
+
+/* Calculation Note */
+.calculation-note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 4px 6px;
+  background-color: #e0e0ff;
+  border: 1px solid #6666ff;
+  border-radius: 2px;
+  font-size: 9px;
+}
+
+.note-icon {
+  font-size: 10px;
+  color: #0000ff;
+}
+
+.note-text {
+  color: #0000ff;
+  font-style: italic;
+}
+
+/* Pool Status Section - Compact Version */
+.pool-status-section {
+  margin: 8px 0; /* Reduced from 12px */
+  padding: 6px; /* Reduced from 8px */
+  background-color: #f0f0f0;
+  border: 1px inset #c0c0c0;
+}
+
+.status-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px; /* Reduced from 8px */
+}
+
+.status-icon {
+  font-size: 14px; /* Reduced from 16px */
+  margin-top: 1px; /* Reduced from 2px */
+  flex-shrink: 0;
+}
+
+.status-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px; /* Reduced from 4px */
+  flex: 1;
+}
+
+.status-title {
+  font-weight: bold;
+  font-size: 11px;
+  color: #000000;
+  line-height: 1.2; /* Added for tighter spacing */
+}
+
+.status-description {
+  font-size: 10px;
+  color: #666666;
+  line-height: 1.2; /* Reduced from 1.3 */
+  margin-bottom: 2px; /* Added small margin for separation */
+}
+
+.pool-ratio-display {
+  display: flex;
+  flex-direction: row; /* Changed from column to row for horizontal layout */
+  align-items: center; /* Center align items */
+  gap: 6px; /* Space between label and value */
+  margin-top: 2px; /* Reduced from 4px */
+  padding: 3px 6px; /* Reduced vertical padding from 4px to 3px */
+  background-color: #e0e0ff;
+  border: 1px solid #6666ff;
+  border-radius: 2px;
+}
+
+.ratio-label {
+  font-size: 9px;
+  color: #0000ff;
+  font-weight: bold;
+  flex-shrink: 0; /* Prevent label from shrinking */
+}
+
+.ratio-value {
+  font-size: 10px;
+  color: #0000ff;
+  font-family: monospace;
+  flex: 1; /* Allow value to take remaining space */
+}
+
+/* Specific styling for existing pool status */
+.status-info.existing-pool {
+  /* Additional compact styling for existing pools */
+}
+
+.status-info.existing-pool .status-details {
+  gap: 2px; /* Even tighter spacing for existing pools */
+}
+
+.status-info.existing-pool .pool-ratio-display {
+  margin-top: 1px; /* Minimal top margin */
+}
+
+/* Remove Liquidity Specific Styles */
+
+/* Pool Selection */
+.pool-selection-section {
+  margin-bottom: 16px;
+}
+
+.selection-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.selection-label {
+  font-weight: bold;
+  font-size: 11px;
+  color: #000000;
+  display: block;
+}
+
+.selection-helper {
+  font-size: 9px;
+  color: #666666;
+  display: block;
+  margin-top: 2px;
+}
+
+.pool-selector-container {
+  background-color: #f0f0f0;
+  border: 1px inset #c0c0c0;
+  padding: 12px;
+}
+
+.pool-selector-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: end;
+}
+
+.token-selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selector-label {
+  font-size: 10px;
+  color: #666666;
+  font-weight: bold;
+}
+
+.pair-separator-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 8px;
+}
+
+.pair-separator {
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* LP Amount Section */
+.lp-amount-section {
+  background-color: #ffffff;
+  border: 1px inset #c0c0c0;
+  padding: 12px;
+  margin: 12px 0;
+}
+
+.amount-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.amount-label {
+  font-weight: bold;
+  font-size: 11px;
+  color: #000000;
+  display: block;
+}
+
+.amount-helper {
+  font-size: 9px;
+  color: #666666;
+  display: block;
+  margin-top: 2px;
+  font-family: monospace;
+}
+
+/* Percentage Selection */
+.percentage-selection {
+  margin-bottom: 16px;
+}
+
+.percentage-label {
+  font-size: 10px;
+  color: #666666;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.percentage-buttons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.percentage-button {
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+  padding: 6px 12px;
+  font-size: 10px;
+  cursor: pointer;
+  color: #000000;
+  min-width: 50px;
+}
+
+.percentage-button:hover:not(:disabled) {
+  background-color: #dfdfdf;
+}
+
+.percentage-button:active {
+  border: 1px inset #c0c0c0;
+}
+
+.percentage-button.active {
+  background-color: #0000ff;
+  color: #ffffff;
+  border: 1px inset #0000ff;
+}
+
+.percentage-button:disabled {
+  color: #808080;
+  cursor: not-allowed;
+}
+
+/* LP Input Container */
+.lp-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lp-input-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lp-input-label {
+  font-weight: bold;
+  font-size: 10px;
+  color: #000000;
+}
+
+.lp-input-helper {
+  font-size: 9px;
+  color: #666666;
+  font-style: italic;
+}
+
+.lp-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Positions Summary Styles */
+.positions-summary {
+  background-color: #f0f0f0;
+  border: 1px inset #c0c0c0;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.summary-stats {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: #666666;
+  font-weight: bold;
+}
+
+.stat-value {
+  font-size: 12px;
+  color: #000000;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+/* Enhanced Data Grid Headers */
+.grid-column-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+}
+
+.header-text {
+  font-weight: bold;
+  font-size: 10px;
+  color: #000000;
+}
+
+.header-helper {
+  font-size: 8px;
+  color: #666666;
+  font-style: italic;
+}
+
+/* Button Icon Styles */
+.button-icon {
+  margin-right: 4px;
+}
+
+.button-loading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Enhanced Input States */
+.liquidity-amount-input.calculated {
+  background-color: #f0f0ff !important;
+  border-color: #6666ff !important;
+  font-style: italic;
+}
+
+.liquidity-amount-input.calculated::placeholder {
+  color: #6666ff;
+  font-style: italic;
+}
+
+/* Container-based Responsive Adjustments */
+/* Apply responsive styles for containers smaller than 520px */
+@container (max-width: 520px) {
+  .token-input-controls {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .pool-selector-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .pair-separator-container {
+    order: 2;
+    padding: 6px 0;
+  }
+}
+
+/* Fallback for browsers without container queries */
+@media (max-width: 768px) {
+  .token-input-controls {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .pool-selector-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .pair-separator-container {
+    order: 2;
+    padding: 6px 0;
+  }
+
+  .summary-stats {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .win98-data-grid-header,
+  .win98-data-grid-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .grid-cell {
+    border-right: none;
+    border-bottom: 1px solid #dfdfdf;
+    padding: 4px;
+  }
+}
+
+/* Force responsive layout for narrow containers */
+.liquidity-dialog-container {
+  container-type: inline-size;
+}
+
+/* Ensure inputs don't overflow */
+.liquidity-amount-input,
+.liquidity-token-select {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Reduce padding in narrow containers */
+@container (max-width: 480px) {
+  .token-input-container {
+    padding: 6px;
+  }
+
+  .liquidity-section {
+    padding: 6px;
+  }
+
+  .win98-step-indicator {
+    padding: 6px; /* Even more compact on small screens */
+    margin-bottom: 6px;
+  }
+
+  .pool-status-section {
+    margin: 6px 0; /* Reduced margins on small screens */
+    padding: 4px; /* Reduced padding on small screens */
+  }
+
+  /* Responsive swap interface adjustments */
+  .swap-token-inputs {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .swap-amount-input,
+  .swap-token-select {
+    flex: none;
+    width: 100%;
+  }
+
+  .swap-direction-button {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .win98-form-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .win98-form-label {
+    text-align: left;
+    min-width: auto;
+  }
+
+  /* Responsive pools interface */
+  .pools-content {
+    max-height: 280px; /* Reduce height on smaller screens */
+  }
+
+  .pool-reserves {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .pool-info {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pool-card {
+    padding: 8px;
+  }
+}
+
+.win98-token-symbol {
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.win98-token-name {
+  font-size: 9px;
+  color: #666666;
+}
+
+.win98-token-balance {
+  font-size: 9px;
+  font-family: monospace;
+  color: #666666;
+}
+
+/* Swap interface specific styles */
+.swap-container {
+  padding: 8px;
+}
+
+.swap-form-container {
+  margin: 8px 0;
+}
+
+.swap-token-section {
+  margin-bottom: 12px;
+}
+
+.swap-token-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.swap-token-label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #000000;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.swap-balance-text {
+  font-size: 9px;
+  color: #666666;
+  font-family: monospace;
+}
+
+.swap-token-inputs {
+  display: flex;
+  gap: 8px;
+  align-items: stretch; /* Changed from center to stretch for equal height */
+}
+
+/* Ensure input and select have consistent height and alignment */
+.swap-amount-input {
+  flex: 2;
+  height: 23px; /* Explicit height for consistency */
+  box-sizing: border-box;
+}
+
+.swap-token-select {
+  flex: 1;
+  min-width: 120px;
+  height: 23px; /* Match input height */
+  box-sizing: border-box;
+}
+
+/* Override field-row styling for swap inputs to prevent extra spacing */
+.swap-token-inputs .field-row {
+  margin: 0;
+  display: flex;
+  flex: 1;
+}
+
+.swap-token-inputs .field-row input,
+.swap-token-inputs .field-row select {
+  width: 100%;
+  height: 23px;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+.swap-direction-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 12px 0; /* Slightly increased margin for better spacing */
+  position: relative;
+}
+
+.swap-direction-button {
+  width: 36px; /* Slightly larger for better visibility */
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px; /* Slightly larger icon */
+  font-weight: bold;
+  background-color: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.swap-direction-button:hover:not(:disabled) {
+  background-color: #dfdfdf;
+  border-color: #dfdfdf;
+}
+
+.swap-direction-button:active:not(:disabled) {
+  border: 2px inset #c0c0c0;
+  background-color: #a0a0a0;
+}
+
+.swap-direction-button:disabled {
+  background-color: #808080;
+  border-color: #808080;
+  color: #c0c0c0;
+  cursor: not-allowed;
+}
+
+/* Swap Action Section */
+.swap-action-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 16px;
+  padding: 8px 0;
+}
+
+.swap-action-button {
+  min-width: 140px;
+  height: 32px;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.swap-button-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swap-loading-indicator,
+.swap-action-icon {
+  font-size: 12px;
+}
+
+/* Token Selection Warning Styles */
+.win98-groupbox .win98-form-row span[style*="color: #ff6600"] {
+  background-color: #fff3e0;
+  border: 1px solid #ff9800;
+  padding: 6px 8px;
+  border-radius: 2px;
+  display: block;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* Disabled swap button styling for identical tokens */
+.swap-action-button:disabled .swap-button-content {
+  opacity: 0.7;
+}
+
+.swap-action-button:disabled .swap-action-icon {
+  color: #ff6600;
+}
+
+/* Liquidity interface specific styles */
+.liquidity-container {
+  padding: 8px;
+}
+
+.pool-info {
+  border: 1px inset #c0c0c0;
+  padding: 8px;
+  margin: 8px 0;
+  background-color: #ffffff;
+}
+
+.pool-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pool-stat {
+  text-align: center;
+}
+
+.pool-stat-label {
+  font-size: 9px;
+  color: var(--win98-text-secondary);
+}
+
+.pool-stat-value {
+  font-size: 11px;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+/* Notification styles */
+.win98-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #c0c0c0;
+  border: 2px outset #c0c0c0;
+  padding: 16px;
+  min-width: 300px;
+  max-width: 400px;
+  z-index: 10000;
+  font-family: 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.win98-notification-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  font-weight: bold;
+}
+
+.win98-notification-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.win98-notification-content {
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.win98-notification-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Notification Dialog Overlay */
+.notification-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999; /* Very high z-index to appear above everything */
+  pointer-events: none; /* Allow clicks to pass through overlay */
+}
+
+.notification-overlay .window {
+  pointer-events: auto; /* Re-enable clicks on the actual dialog */
+  z-index: 10000; /* Even higher z-index for the dialog itself */
+}
+
+/* Notification Dialog Content */
+.notification-content {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* Prevent content from overflowing dialog */
+}
+
+/* Scrollable content area */
+.notification-scrollable-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  margin: 0;
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: #c0c0c0 #dfdfdf;
+  /* Ensure smooth scrolling */
+  scroll-behavior: smooth;
+}
+
+/* Webkit scrollbar styling for Windows 98 look */
+.notification-scrollable-area::-webkit-scrollbar {
+  width: 16px;
+  background-color: #c0c0c0;
+}
+
+.notification-scrollable-area::-webkit-scrollbar-track {
+  background-color: #c0c0c0;
+  border: 1px inset #c0c0c0;
+}
+
+.notification-scrollable-area::-webkit-scrollbar-thumb {
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+}
+
+.notification-scrollable-area::-webkit-scrollbar-thumb:hover {
+  background-color: #dfdfdf;
+}
+
+.notification-scrollable-area::-webkit-scrollbar-button {
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+  height: 16px;
+}
+
+.notification-scrollable-area::-webkit-scrollbar-button:hover {
+  background-color: #dfdfdf;
+}
+
+.notification-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.notification-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  min-width: 20px;
+}
+
+.notification-message {
+  flex: 1;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-line; /* Preserve line breaks in messages */
+  word-wrap: break-word;
+  overflow-wrap: break-word; /* Better word wrapping */
+  hyphens: auto; /* Enable hyphenation for long words */
+}
+
+.notification-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #808080;
+  background-color: #c0c0c0; /* Match dialog background */
+  flex-shrink: 0; /* Prevent buttons from shrinking */
+  min-height: 48px; /* Ensure consistent button area height */
+}
+
+/* Enhanced button styling for notification dialogs */
+.notification-buttons .win98-button {
+  min-width: 75px;
+  height: 23px;
+  font-size: 11px;
+}
+
+/* Copy button specific styling */
+.notification-buttons .copy-button {
+  margin-right: 4px;
+}
+
+/* OK button specific styling */
+.notification-buttons .ok-button {
+  font-weight: bold;
+}
+
+/* Wallet panel styles */
+.wallet-panel {
+  border: 1px inset #c0c0c0;
+  padding: 8px;
+  margin: 8px 0;
+  background-color: #ffffff;
+}
+
+.wallet-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.wallet-address {
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--win98-text-secondary);
+}
+
+.wallet-balance {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+/* Network status styles */
+.network-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.network-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--dex-success);
+}
+
+.network-indicator.disconnected {
+  background-color: var(--dex-error);
+}
+
+.network-indicator.connecting {
+  background-color: var(--dex-warning);
+}
+
+/* Enhanced Interface Polish */
+
+/* Improved spacing and alignment */
+.swap-dialog-container,
+.tokenizer-container,
+.liquidity-container,
+.pools-container {
+  padding: 8px;
+  font-size: 11px;
+}
+
+/* Pools Interface Specific Styles */
+.pools-content {
+  margin-top: 8px;
+  max-height: 320px; /* Set maximum height to allow scrolling */
+  overflow-y: auto; /* Enable vertical scrolling */
+  overflow-x: hidden; /* Hide horizontal scrollbar */
+  border: 1px inset #c0c0c0; /* Add border to scrollable area */
+  background-color: #ffffff;
+  position: relative;
+
+  /* Windows 98 style scrollbar */
+  scrollbar-width: 16px;
+  scrollbar-color: #c0c0c0 #f0f0f0;
+}
+
+/* Subtle scroll indicator */
+.pools-content::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 16px; /* Account for scrollbar width */
+  height: 8px;
+  background: linear-gradient(transparent, rgba(192, 192, 192, 0.3));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.pools-content:hover::after {
+  opacity: 1;
+}
+
+/* Custom scrollbar styling for WebKit browsers */
+.pools-content::-webkit-scrollbar {
+  width: 16px;
+  background-color: #f0f0f0;
+}
+
+.pools-content::-webkit-scrollbar-track {
+  background-color: #f0f0f0;
+  border: 1px inset #c0c0c0;
+}
+
+.pools-content::-webkit-scrollbar-thumb {
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+  border-radius: 0;
+}
+
+.pools-content::-webkit-scrollbar-thumb:hover {
+  background-color: #a0a0a0;
+}
+
+.pools-content::-webkit-scrollbar-thumb:active {
+  background-color: #808080;
+  border: 1px inset #c0c0c0;
+}
+
+.pools-content::-webkit-scrollbar-button {
+  background-color: #c0c0c0;
+  border: 1px outset #c0c0c0;
+  height: 16px;
+}
+
+.pools-content::-webkit-scrollbar-button:hover {
+  background-color: #d0d0d0;
+}
+
+.pools-content::-webkit-scrollbar-button:active {
+  border: 1px inset #c0c0c0;
+}
+
+.pools-content::-webkit-scrollbar-button:vertical:start:decrement {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M8 4l4 4H4z' fill='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.pools-content::-webkit-scrollbar-button:vertical:end:increment {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M4 8l4 4 4-4z' fill='%23000'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.pools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* Remove gap to use separators instead */
+  background-color: #ffffff;
+  margin: 0; /* Remove margin since border is on content area */
+}
+
+.pool-card {
+  background-color: #ffffff;
+  border: 1px inset #c0c0c0;
+  padding: 12px;
+  margin: 0; /* Remove margin to use separators */
+  position: relative;
+}
+
+.pool-card:not(:last-child) {
+  border-bottom: none; /* Remove bottom border for all but last */
+}
+
+.pool-card:first-child {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.pool-card:last-child {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.pool-card + .pool-card {
+  position: relative;
+  margin-top: 0;
+}
+
+.pool-card + .pool-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #808080;
+  box-shadow: 0 1px 0 #dfdfdf;
+}
+
+/* Alternative separator style - more Windows 98 like */
+.pool-separator {
+  height: 3px;
+  background: #c0c0c0;
+  border-top: 1px solid #808080;
+  border-bottom: 1px solid #dfdfdf;
+  margin: 8px 0;
+}
+
+.pool-card.active {
+  background-color: #f0fff0; /* Light green tint for active pools */
+}
+
+.pool-card.inactive {
+  background-color: #fff0f0; /* Light red tint for inactive pools */
+}
+
+.pool-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.pool-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pair-tokens {
+  font-weight: bold;
+  font-size: 12px;
+  color: #000000;
+}
+
+.pool-status {
+  font-size: 10px;
+  font-weight: normal;
+}
+
+.pool-status.active {
+  color: #008000;
+}
+
+.pool-status.inactive {
+  color: #cc0000;
+}
+
+.pool-address {
+  font-size: 9px;
+  color: #666666;
+  font-family: monospace;
+}
+
+.pool-reserves {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.reserve-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reserve-label {
+  font-size: 9px;
+  color: #666666;
+  font-weight: bold;
+}
+
+.reserve-value {
+  font-size: 11px;
+  font-family: monospace;
+  color: #000000;
+}
+
+.pool-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-label {
+  font-size: 9px;
+  color: #666666;
+  font-weight: bold;
+}
+
+.info-value {
+  font-size: 11px;
+  font-family: monospace;
+  color: #000000;
+}
+
+.pool-empty {
+  text-align: center;
+  padding: 16px;
+  color: #666666;
+  font-style: italic;
+}
+
+.pool-empty p {
+  margin: 4px 0;
+  font-size: 10px;
+}
+
+.no-pools {
+  text-align: center;
+  padding: 32px;
+  color: #666666;
+}
+
+.no-pools p {
+  margin: 8px 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Status message improvements */
+.win98-status-panel {
+  border: 1px inset #c0c0c0;
+  background-color: #ffffff;
+  padding: 8px;
+  margin: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.win98-status-panel.warning {
+  background-color: #ffffcc;
+  border-color: #ffcc00;
+}
+
+.win98-status-panel.error {
+  background-color: #ffcccc;
+  border-color: #ff0000;
+}
+
+.win98-status-panel.info {
+  background-color: #ccffff;
+  border-color: #0099cc;
+}
+
+.win98-status-panel.success {
+  background-color: #ccffcc;
+  border-color: #00cc00;
+}
+
+/* Button enhancements */
+.win98-button-small {
+  font-size: 10px;
+  padding: 2px 6px;
+  min-height: 18px;
+}
+
+/* Form validation styling */
+.win98-form-input.error {
+  border: 1px inset #ff0000;
+  background-color: #ffeeee;
+}
+
+.win98-form-error {
+  color: #ff0000;
+  font-size: 9px;
+  margin-top: 2px;
+  display: block;
+}
+
+/* Loading state improvements */
+.win98-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(192, 192, 192, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Improved focus states */
+.win98-tab:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 1px dotted #000000;
+  outline-offset: -2px;
+}
+
+/* Better disabled states */
+.win98-tab:disabled,
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Improved hover states */
+.win98-tab:hover:not(:disabled):not(.active) {
+  background-color: #e0e0e0;
+}
+
+button:hover:not(:disabled) {
+  background-color: #dfdfdf;
+}
+
+/* Better visual separation */
+.win98-separator {
+  height: 1px;
+  background-color: #808080;
+  margin: 8px 0;
+  border: none;
+}
+
+/* Improved data display */
+.win98-data-grid {
+  border: 1px inset #c0c0c0;
+  background-color: #ffffff;
+  width: 100%;
+}
+
+.win98-data-header {
+  background-color: #c0c0c0;
+  border-bottom: 1px solid #808080;
+  padding: 4px 8px;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.win98-data-row {
+  border-bottom: 1px solid #dfdfdf;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.win98-data-row:hover {
+  background-color: #dfdfdf;
+}
+
+.win98-data-row.selected {
+  background-color: #0000ff;
+  color: #ffffff;
+}

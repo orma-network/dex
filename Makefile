@@ -110,6 +110,29 @@ test-deployment:
 		--rpc-url http://127.0.0.1:8545 \
 		--broadcast \
 		-v
+
+# Test coverage
+coverage:
+	@echo "Running test coverage..."
+	@if [ ! -f deployments/deployment-31337.json ]; then \
+		echo "No Anvil deployment found. Run 'make deploy-anvil' first."; \
+		exit 1; \
+	fi
+	@echo "Loading deployment addresses from deployments/deployment-31337.json"
+	@export FACTORY_ADDRESS=$$(jq -r '.factory' deployments/deployment-31337.json) && \
+	 export ROUTER_ADDRESS=$$(jq -r '.router' deployments/deployment-31337.json) && \
+	 export TOKEN_FACTORY_ADDRESS=$$(jq -r '.tokenFactory' deployments/deployment-31337.json) && \
+	 export TOKEN_A_ADDRESS=$$(jq -r '.testTokenA' deployments/deployment-31337.json) && \
+	 export TOKEN_B_ADDRESS=$$(jq -r '.testTokenB' deployments/deployment-31337.json) && \
+	 export TOKEN_C_ADDRESS=$$(jq -r '.testTokenC' deployments/deployment-31337.json) && \
+	 echo "  Factory: $$FACTORY_ADDRESS" && \
+	 echo "  Router: $$ROUTER_ADDRESS" && \
+	 echo "  TokenFactory: $$TOKEN_FACTORY_ADDRESS" && \
+	 echo "  TestTokenA: $$TOKEN_A_ADDRESS" && \
+	 echo "  TestTokenB: $$TOKEN_B_ADDRESS" && \
+	 echo "  TestTokenC: $$TOKEN_C_ADDRESS" && \
+	 echo "" && \
+	 forge coverage
 	@echo "Deployment test complete!"
 
 # Verify contracts

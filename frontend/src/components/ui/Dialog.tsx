@@ -82,10 +82,10 @@ export const Dialog: React.FC<DialogProps> = ({
         onClose={onClose}
         className="z-[1001] fixed"
       >
-        <div className="flex flex-col h-full">
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           {/* Content */}
           {type === 'custom' ? (
-            <div className="flex-1 overflow-hidden min-h-0">
+            <div style={{ flex: '1 1 auto', overflow: 'auto', minHeight: '0' }}>
               {children}
             </div>
           ) : (
@@ -96,9 +96,19 @@ export const Dialog: React.FC<DialogProps> = ({
               </div>
             </div>
           )}
-          
+
           {/* Buttons */}
-          <div className={`flex justify-end gap-2 ${type === 'custom' ? 'py-2' : 'p-2'}`} style={type === 'custom' ? { paddingLeft: '12px', paddingRight: '12px', borderTop: '2px outset var(--win98-bg)' } : { borderTop: '2px outset var(--win98-bg)' }}>
+          <div
+            className={`flex justify-end gap-2 ${type === 'custom' ? 'py-2' : 'p-2'}`}
+            style={{
+              flexShrink: 0,
+              borderTop: '2px outset #c0c0c0',
+              paddingLeft: '12px',
+              paddingRight: '12px',
+              paddingTop: '8px',
+              paddingBottom: '8px'
+            }}
+          >
             {showCancel && (
               <Button onClick={onClose}>
                 {cancelText}

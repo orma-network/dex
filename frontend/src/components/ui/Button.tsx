@@ -16,17 +16,19 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   ...props
 }) => {
-  const baseClass = variant === 'primary' ? 'win98-button-primary' : 'win98-button';
-  
+  // 98.css uses 'default' class for primary buttons
+  const variantClass = variant === 'primary' ? 'default' : '';
+
+  // 98.css handles sizing automatically, but we can add custom size classes if needed
   const sizeClasses = {
-    small: 'text-xs px-2 py-1 min-w-16 min-h-5',
-    medium: 'text-sm px-3 py-1 min-w-20 min-h-6',
-    large: 'text-base px-4 py-2 min-w-24 min-h-8',
+    small: 'button-small',
+    medium: '',
+    large: 'button-large',
   };
 
   return (
     <button
-      className={`${baseClass} ${sizeClasses[size]} ${className}`}
+      className={`${variantClass} ${sizeClasses[size]} ${className}`.trim()}
       disabled={disabled}
       {...props}
     >

@@ -47,27 +47,42 @@ export function NotificationDialog({
     }
   };
 
+  // Calculate center position with increased width and improved height calculation
+  const dialogWidth = 480;
+  const maxDialogHeight = Math.min(400, window.innerHeight - 100); // Max height with screen padding
+  const minDialogHeight = 200;
+  const estimatedContentHeight = message.split('\n').length * 18 + 140; // More accurate line height
+  const dialogHeight = Math.min(maxDialogHeight, Math.max(minDialogHeight, estimatedContentHeight));
+
+  const centerX = Math.max(20, (window.innerWidth - dialogWidth) / 2);
+  const centerY = Math.max(20, (window.innerHeight - dialogHeight) / 2);
+
   return (
     <div className="notification-overlay">
       <Window
         title={title}
-        width={400}
-        height={200}
-        x={100}
-        y={100}
-        className="notification-dialog"
+        width={dialogWidth}
+        height={dialogHeight}
+        x={centerX}
+        y={centerY}
+        resizable={false}
+        minimizable={false}
+        maximizable={false}
+        className="notification-dialog z-[10000] fixed"
       >
         <div className="notification-content">
-          <div className="notification-header">
-            <span className="notification-icon">{getIcon()}</span>
-            <div className="notification-message">
-              {message}
+          <div className="notification-scrollable-area">
+            <div className="notification-header">
+              <span className="notification-icon">{getIcon()}</span>
+              <div className="notification-message">
+                {message}
+              </div>
             </div>
           </div>
-          
+
           <div className="notification-buttons">
             {showCopy && (
-              <button 
+              <button
                 className="win98-button copy-button"
                 onClick={handleCopy}
                 type="button"
@@ -75,7 +90,7 @@ export function NotificationDialog({
                 Copy
               </button>
             )}
-            <button 
+            <button
               className="win98-button ok-button"
               onClick={onClose}
               type="button"

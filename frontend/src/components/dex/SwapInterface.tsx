@@ -37,6 +37,7 @@ export function SwapInterface() {
   const [slippage, setSlippage] = useState('0.5');
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [currentTransactionType, setCurrentTransactionType] = useState<'approval' | 'swap' | 'mint' | null>(null);
 
 
   useEffect(() => {
@@ -48,27 +49,47 @@ export function SwapInterface() {
     hash,
   });
 
-  // Handle transaction success/error
+  // Handle transaction success/error - only show notification for swap transactions
   useEffect(() => {
-    if (isSuccess) {
+    if (isSuccess && currentTransactionType === 'swap') {
+      console.log('Swap transaction confirmed successfully!');
       showNotification(
-        'Transaction Successful',
-        'Your transaction has been completed successfully! 🎉\n\nYour token balances have been updated.',
+        'Swap Completed Successfully',
+        'Your token swap has been completed successfully! 🎉\n\nYour token balances have been updated and the transaction is confirmed on the blockchain.',
         'success'
       );
 
       // Reset input fields for next transaction
       setFromAmount('');
       setToAmount('');
+      setCurrentTransactionType(null);
 
       setTimeout(() => {
         refetchAllBalances();
       }, 1000);
+    } else if (isSuccess && currentTransactionType === 'mint') {
+      console.log('Mint transaction confirmed successfully!');
+      showNotification(
+        'Test Tokens Minted',
+        'Successfully minted 1000 tokens of each type! 🪙\n\nYour balances have been updated and you can now start trading.',
+        'success'
+      );
+      setCurrentTransactionType(null);
+
+      setTimeout(() => {
+        refetchAllBalances();
+      }, 1000);
+    } else if (isSuccess && currentTransactionType === 'approval') {
+      console.log('Approval transaction confirmed successfully!');
+      // For approval transactions, just reset the transaction type
+      // Don't show notification as this is an intermediate step
+      setCurrentTransactionType(null);
     }
-  }, [isSuccess]);
+  }, [isSuccess, currentTransactionType]);
 
   useEffect(() => {
     if (writeError) {
+      setCurrentTransactionType(null); // Reset transaction type on error
       showNotification(
         'Transaction Error',
         `Transaction failed: ${writeError.message}\n\nPlease try again or check your wallet connection.`,
@@ -143,6 +164,12 @@ export function SwapInterface() {
   useEffect(() => {
     const getQuote = async () => {
       if (!fromAmount || !fromToken.address || !toToken.address || fromAmount === '0' || !CONTRACT_ADDRESSES.ROUTER || !publicClient) {
+        setToAmount('');
+        return;
+      }
+
+      // Prevent swapping identical tokens
+      if (fromToken.address.toLowerCase() === toToken.address.toLowerCase()) {
         setToAmount('');
         return;
       }
@@ -237,14 +264,16 @@ export function SwapInterface() {
       // Only approve if allowance is insufficient
       if (!currentAllowance || currentAllowance < amountIn) {
         console.log('Approving router to spend tokens...');
-        const approvalHash = await writeContract({
+        setCurrentTransactionType('approval');
+
+        await writeContract({
           address: fromToken.address as `0x${string}`,
           abi: ERC20_ABI,
           functionName: 'approve',
           args: [CONTRACT_ADDRESSES.ROUTER as `0x${string}`, amountIn],
         });
 
-        // Wait for approval transaction to be confirmed
+        // Wait for approval transaction to be confirmed using wagmi's built-in mechanism
         console.log('Waiting for approval confirmation...');
         let approvalConfirmed = false;
         let attempts = 0;
@@ -338,6 +367,7 @@ export function SwapInterface() {
         deadline: deadline.toString()
       });
 
+      setCurrentTransactionType('swap');
       await writeContract({
         address: CONTRACT_ADDRESSES.ROUTER as `0x${string}`,
         abi: ROUTER_ABI,
@@ -351,9 +381,10 @@ export function SwapInterface() {
         ],
       });
 
-      console.log('Swap completed successfully!');
+      console.log('Swap transaction submitted, waiting for confirmation...');
     } catch (error) {
       console.error('Swap failed:', error);
+      setCurrentTransactionType(null); // Reset transaction type on error
       showNotification(
         'Swap Failed',
         `Failed to execute swap: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease check:\n• Your wallet connection\n• Token balances\n• Network connection\n• Gas fees`,
@@ -371,29 +402,9 @@ export function SwapInterface() {
       setIsLoading(true);
       const mintAmount = parseUnits('1000', 18); // Mint 1000 tokens
 
-      // Mint TTA tokens
-      await writeContract({
-        address: CONTRACT_ADDRESSES.TOKEN_A as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'mint',
-        args: [address, mintAmount],
-      });
+      setCurrentTransactionType('mint');
 
-      // Wait a moment
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mint TTB tokens
-      await writeContract({
-        address: CONTRACT_ADDRESSES.TOKEN_B as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'mint',
-        args: [address, mintAmount],
-      });
-
-      // Wait a moment
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mint TTC tokens
+      // Mint TTC tokens (only mint the last one to trigger the success notification)
       await writeContract({
         address: CONTRACT_ADDRESSES.TOKEN_C as `0x${string}`,
         abi: ERC20_ABI,
@@ -401,14 +412,10 @@ export function SwapInterface() {
         args: [address, mintAmount],
       });
 
-      console.log('Test tokens minted successfully!');
-      showNotification(
-        'Test Tokens Minted',
-        'Successfully minted 1000 tokens of each type! 🪙\n\nYour balances have been updated and you can now start trading.',
-        'success'
-      );
+      console.log('Test tokens minting transaction submitted, waiting for confirmation...');
     } catch (error) {
       console.error('Failed to mint test tokens:', error);
+      setCurrentTransactionType(null); // Reset transaction type on error
       showNotification(
         'Minting Failed',
         `Failed to mint test tokens: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease check:\n• Your wallet connection\n• Network connection\n• Contract deployment`,
@@ -437,11 +444,15 @@ export function SwapInterface() {
   };
 
   const isWrongNetwork = isConnected && chainId !== anvilChain.id;
-  const canSwap = isMounted && isConnected && !isWrongNetwork && fromAmount && toAmount && !isPending && !isConfirming;
+  const areTokensIdentical = fromToken.address && toToken.address &&
+    fromToken.address.toLowerCase() === toToken.address.toLowerCase();
+  const canSwap = isMounted && isConnected && !isWrongNetwork && fromAmount && toAmount &&
+    !isPending && !isConfirming && !areTokensIdentical;
 
   return (
     <>
       <Window
+        id="swap"
         title="WinDex - Token Swap"
         width={460}
         height={620}
@@ -532,51 +543,56 @@ export function SwapInterface() {
 
         {/* Main Swap Form */}
         <div className="swap-form-container">
-          <div className="swap-groupbox">
-            <div className="swap-groupbox-title">
-              <span className="swap-title-icon">🔄</span>
-              Swap Tokens
+          <div className="win98-groupbox">
+            <div className="win98-groupbox-title">
+              🔄 Swap Tokens
             </div>
-            <div className="swap-groupbox-content">
-              {/* From Token Section */}
-              <div className="swap-token-section from-token">
-                <div className="swap-token-header">
-                  <label className="swap-token-label">
-                    <span className="token-direction-icon">📤</span>
-                    From
-                  </label>
-                  <span className="swap-balance-text">
-                    {fromToken.address && fromToken.symbol ? (
-                      `Balance: ${formatBalance(fromBalance, fromToken.decimals)} ${fromToken.symbol}`
-                    ) : (
-                      'Select a token'
-                    )}
-                  </span>
-                </div>
-                <div className="swap-token-inputs">
-                  <Input
-                    type="number"
-                    placeholder="0.0"
-                    value={fromAmount}
-                    onChange={(e) => setFromAmount(e.target.value)}
-                    className="swap-amount-input"
-                    disabled={!isMounted || !isConnected}
-                  />
-                  <Select
-                    value={fromToken.address}
-                    onChange={(e) => {
-                      const token = availableTokens.find((t: Token) => t.address === e.target.value);
-                      if (token) setFromToken(token);
-                    }}
-                    options={availableTokens && availableTokens.length > 0 ? availableTokens.map(token => ({
-                      value: token.address,
-                      label: `${token.symbol} - ${token.name}`,
-                    })) : []}
-                    className="swap-token-select"
-                    disabled={!isMounted || !isConnected}
-                  />
-                </div>
+
+            {/* From Token Section */}
+            <div className="swap-token-section from-token">
+              <div className="swap-token-header">
+                <label className="swap-token-label">
+                  <span className="token-direction-icon">📤</span>
+                  From
+                </label>
+                <span className="swap-balance-text">
+                  {fromToken.address && fromToken.symbol ? (
+                    `Balance: ${formatBalance(fromBalance, fromToken.decimals)} ${fromToken.symbol}`
+                  ) : (
+                    'Select a token'
+                  )}
+                </span>
               </div>
+              <div className="swap-token-inputs">
+                <Input
+                  type="number"
+                  placeholder="0.0"
+                  value={fromAmount}
+                  onChange={(e) => setFromAmount(e.target.value)}
+                  className="swap-amount-input"
+                  disabled={!isMounted || !isConnected}
+                />
+                <Select
+                  value={fromToken.address}
+                  onChange={(e) => {
+                    const token = availableTokens.find((t: Token) => t.address === e.target.value);
+                    if (token) {
+                      // If the selected token is the same as toToken, swap them
+                      if (token.address.toLowerCase() === toToken.address.toLowerCase() && toToken.address !== '') {
+                        setToToken(fromToken);
+                      }
+                      setFromToken(token);
+                    }
+                  }}
+                  options={availableTokens && availableTokens.length > 0 ? availableTokens.map(token => ({
+                    value: token.address,
+                    label: `${token.symbol} - ${token.name}`,
+                  })) : []}
+                  className="swap-token-select"
+                  disabled={!isMounted || !isConnected}
+                />
+              </div>
+            </div>
 
               {/* Swap Direction Button */}
               <div className="swap-direction-container">
@@ -596,111 +612,145 @@ export function SwapInterface() {
                 </Button>
               </div>
 
-              {/* To Token Section */}
-              <div className="swap-token-section to-token">
-                <div className="swap-token-header">
-                  <label className="swap-token-label">
-                    <span className="token-direction-icon">📥</span>
-                    To
-                  </label>
-                  <span className="swap-balance-text">
-                    {toToken.address && toToken.symbol ? (
-                      `Balance: ${formatBalance(toBalance, toToken.decimals)} ${toToken.symbol}`
-                    ) : (
-                      'Select a token'
-                    )}
-                  </span>
-                </div>
-                <div className="swap-token-inputs">
-                  <Input
-                    type="number"
-                    placeholder="0.0"
-                    value={toAmount}
-                    readOnly
-                    className="swap-amount-input readonly"
-                  />
-                  <Select
-                    value={toToken.address}
-                    onChange={(e) => {
-                      const token = availableTokens.find((t: Token) => t.address === e.target.value);
-                      if (token) setToToken(token);
-                    }}
-                    options={availableTokens && availableTokens.length > 0 ? availableTokens.map(token => ({
-                      value: token.address,
-                      label: `${token.symbol} - ${token.name}`,
-                    })) : []}
-                    className="swap-token-select"
-                    disabled={!isMounted || !isConnected}
-                  />
-                </div>
+            {/* To Token Section */}
+            <div className="swap-token-section to-token">
+              <div className="swap-token-header">
+                <label className="swap-token-label">
+                  <span className="token-direction-icon">📥</span>
+                  To
+                </label>
+                <span className="swap-balance-text">
+                  {toToken.address && toToken.symbol ? (
+                    `Balance: ${formatBalance(toBalance, toToken.decimals)} ${toToken.symbol}`
+                  ) : (
+                    'Select a token'
+                  )}
+                </span>
               </div>
-
-              {/* Slippage Section */}
-              <div className="swap-slippage-section">
+              <div className="swap-token-inputs">
                 <Input
-                  label="Slippage Tolerance (%)"
                   type="number"
-                  step="0.1"
-                  value={slippage}
-                  onChange={(e) => setSlippage(e.target.value)}
-                  className="swap-slippage-input"
+                  placeholder="0.0"
+                  value={toAmount}
+                  readOnly
+                  className="swap-amount-input readonly"
+                />
+                <Select
+                  value={toToken.address}
+                  onChange={(e) => {
+                    const token = availableTokens.find((t: Token) => t.address === e.target.value);
+                    if (token) {
+                      // If the selected token is the same as fromToken, swap them
+                      if (token.address.toLowerCase() === fromToken.address.toLowerCase() && fromToken.address !== '') {
+                        setFromToken(toToken);
+                      }
+                      setToToken(token);
+                    }
+                  }}
+                  options={availableTokens && availableTokens.length > 0 ? availableTokens.map(token => ({
+                    value: token.address,
+                    label: `${token.symbol} - ${token.name}`,
+                  })) : []}
+                  className="swap-token-select"
                   disabled={!isMounted || !isConnected}
                 />
               </div>
-
-              {/* Price Information */}
-              {fromAmount && toAmount && (
-                <div className="swap-price-info">
-                  <div className="swap-groupbox">
-                    <div className="swap-groupbox-title">
-                      <span className="swap-title-icon">📊</span>
-                      Exchange Rate
-                    </div>
-                    <div className="swap-groupbox-content">
-                      <div className="swap-price-row">
-                        <span className="swap-price-label">Rate:</span>
-                        <span className="swap-price-value">
-                          1 {fromToken.symbol} = {(parseFloat(toAmount) / parseFloat(fromAmount)).toFixed(6)} {toToken.symbol}
-                        </span>
-                      </div>
-                      <div className="swap-price-row">
-                        <span className="swap-price-label">Slippage:</span>
-                        <span className="swap-price-value">{slippage}%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Swap Action Button */}
-              <div className="swap-action-section">
-                <Button
-                  variant="primary"
-                  onClick={handleSwap}
-                  disabled={!canSwap}
-                  className="swap-action-button"
-                >
-                  {isPending || isConfirming ? (
-                    <span className="swap-button-content">
-                      <span className="swap-loading-indicator">⏳</span>
-                      {isPending ? 'Confirming...' : 'Processing...'}
-                    </span>
-                  ) : isLoading ? (
-                    <span className="swap-button-content">
-                      <span className="swap-loading-indicator">⚙️</span>
-                      Preparing...
-                    </span>
-                  ) : (
-                    <span className="swap-button-content">
-                      <span className="swap-action-icon">💱</span>
-                      Swap Tokens
-                    </span>
-                  )}
-                </Button>
-              </div>
-
-
             </div>
+          </div>
+
+          {/* Slippage Settings */}
+          <div className="win98-groupbox">
+            <div className="win98-groupbox-title">
+              ⚙️ Settings
+            </div>
+            <div className="win98-form-row">
+              <label className="win98-form-label">Slippage:</label>
+              <Input
+                type="number"
+                step="0.1"
+                value={slippage}
+                onChange={(e) => setSlippage(e.target.value)}
+                className="win98-form-input"
+                disabled={!isMounted || !isConnected}
+              />
+              <span style={{ fontSize: '11px', color: '#666666' }}>%</span>
+            </div>
+          </div>
+
+          {/* Identical Token Warning */}
+          {fromToken.address && toToken.address &&
+           fromToken.address.toLowerCase() === toToken.address.toLowerCase() && (
+            <div className="win98-groupbox">
+              <div className="win98-groupbox-title">
+                ⚠️ Token Selection
+              </div>
+              <div className="win98-form-row">
+                <span style={{ fontSize: '11px', color: '#ff6600', fontWeight: 'bold' }}>
+                  Cannot swap identical tokens. Please select different tokens for "From" and "To".
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Price Information */}
+          {fromAmount && toAmount &&
+           fromToken.address.toLowerCase() !== toToken.address.toLowerCase() && (
+            <div className="win98-groupbox">
+              <div className="win98-groupbox-title">
+                📊 Exchange Rate
+              </div>
+              <div className="win98-form-row">
+                <span className="win98-form-label">Rate:</span>
+                <span style={{ fontSize: '11px', fontFamily: 'monospace' }}>
+                  1 {fromToken.symbol} = {(parseFloat(toAmount) / parseFloat(fromAmount)).toFixed(6)} {toToken.symbol}
+                </span>
+              </div>
+              <div className="win98-form-row">
+                <span className="win98-form-label">Slippage:</span>
+                <span style={{ fontSize: '11px', fontFamily: 'monospace' }}>{slippage}%</span>
+              </div>
+            </div>
+          )}
+
+          {/* Swap Action Button */}
+          <div className="swap-action-section" style={{ marginTop: '16px', textAlign: 'center' }}>
+            <Button
+              variant="primary"
+              onClick={handleSwap}
+              disabled={!canSwap}
+              className="swap-action-button"
+              style={{ minWidth: '120px' }}
+            >
+              {isPending || isConfirming ? (
+                <span className="swap-button-content">
+                  <span className="swap-loading-indicator">⏳</span>
+                  {isPending ? (
+                    currentTransactionType === 'approval' ? 'Approving...' :
+                    currentTransactionType === 'swap' ? 'Swapping...' :
+                    currentTransactionType === 'mint' ? 'Minting...' : 'Confirming...'
+                  ) : (
+                    currentTransactionType === 'approval' ? 'Approval Confirming...' :
+                    currentTransactionType === 'swap' ? 'Swap Confirming...' :
+                    currentTransactionType === 'mint' ? 'Mint Confirming...' : 'Processing...'
+                  )}
+                </span>
+              ) : isLoading ? (
+                <span className="swap-button-content">
+                  <span className="swap-loading-indicator">⚙️</span>
+                  Preparing...
+                </span>
+              ) : areTokensIdentical ? (
+                <span className="swap-button-content">
+                  <span className="swap-action-icon">⚠️</span>
+                  Select Different Tokens
+                </span>
+              ) : (
+                <span className="swap-button-content">
+                  <span className="swap-action-icon">💱</span>
+                  Swap Tokens
+                </span>
+              )}
+            </Button>
           </div>
         </div>
       </div>

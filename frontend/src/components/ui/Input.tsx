@@ -11,21 +11,25 @@ export const Input: React.FC<InputProps> = ({
   label,
   error,
   className = '',
+  id,
   ...props
 }) => {
+  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+
   return (
-    <div className="flex flex-col gap-1">
+    <div className={label ? "field-row-stacked" : "field-row"}>
       {label && (
-        <label className="text-xs font-normal text-black">
+        <label htmlFor={inputId}>
           {label}
         </label>
       )}
       <input
-        className={`win98-input ${className}`}
+        id={inputId}
+        className={className}
         {...props}
       />
       {error && (
-        <span className="text-xs text-red-600">
+        <span className="input-error">
           {error}
         </span>
       )}
@@ -44,17 +48,21 @@ export const Select: React.FC<SelectProps> = ({
   error,
   options,
   className = '',
+  id,
   ...props
 }) => {
+  const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
+
   return (
-    <div className="flex flex-col gap-1">
+    <div className={label ? "field-row-stacked" : "field-row"}>
       {label && (
-        <label className="text-xs font-normal text-black">
+        <label htmlFor={selectId}>
           {label}
         </label>
       )}
       <select
-        className={`win98-select ${className}`}
+        id={selectId}
+        className={className}
         {...props}
       >
         {options.map((option) => (
@@ -64,7 +72,7 @@ export const Select: React.FC<SelectProps> = ({
         ))}
       </select>
       {error && (
-        <span className="text-xs text-red-600">
+        <span className="input-error">
           {error}
         </span>
       )}
